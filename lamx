@@ -1,0 +1,784 @@
+#!/usr/bin/env bash
+
+# Linux App Manager eXtended
+# This script provides a TUI for managing Linux applications and system tools across multiple package managers.
+# It supports APT, Pacman, DNF, DEB, RPM, Snap, Flatpak, Firmware, NVIDIA drivers, and Tuned profiles.
+
+# Function to clear the screen and print a centered heading
+centered_heading() {
+    clear
+    echo ""
+    COLUMNS=$(tput cols)
+    t1="$1"
+    t2="$2"
+    printf "\033[1m%*s\033[0m\n" $(((${#t1} + $COLUMNS) / 2)) "$t1"
+    printf "\033[1m%*s\033[0m\n" $(((${#t2} + $COLUMNS) / 2)) "$t2"
+    printf "\033[1m%*s\033[0m\n" $(((${#t1} + $COLUMNS) / 2)) "$t1"
+    echo ""
+}
+
+# Function to print a bold, highlighted warning message
+highlighted_warning() {
+    # Usage: highlighted_warning "Your message here"
+    echo -e "\033[1;41m$1\033[0m"
+}
+
+# Main Menu - Entry point for the app
+main_menu() {
+    centered_heading "====================" "Linux App Manager eXtended"
+    echo "Select Your Choice:"
+    echo " 1. APT App Manager"
+    echo " 2. Pacman App Manager"
+    echo " 3. DNF App Manager"
+    echo " 4. DEB App Manager"
+    echo " 5. RPM App Manager"
+    echo " 6. Snap App Manager"
+    echo " 7. Flatpak App Manager"
+    echo " 8. Firmware Manager"
+    echo " 9. NVIDIA Driver Manager"
+    echo "10. Tuned Power Profile Manager"
+    echo "11. Update All Packages In Your System"
+    echo "12. Show System Info"
+    echo "13. Check for Internet Connection"
+    echo "14. Help/About"
+    echo "15. Exit Program"
+    echo ""
+    read -p "Enter your choice: " choice
+    case $choice in
+        1) apt_manager ;;
+        2) pacman_manager ;;
+        3) dnf_manager ;;
+        4) deb_manager ;;
+        5) rpm_manager ;;
+        6) snap_manager ;;
+        7) flatpak_manager ;;
+        8) firmware_manager ;;
+        9) nvidia_manager ;;
+        10) tuned_manager ;;
+        11) update_all_packages ;;
+        12) show_system_info ;;
+        13) check_internet ;;
+        14) show_help ;;
+        15) exit 0 ;;
+        *) highlighted_warning "Invalid choice. Please try again."; sleep 2; main_menu ;;
+    esac
+}
+
+show_system_info() {
+    centered_heading "==== System Information ====" ""
+    echo "Hostname: $(hostname)"
+    echo "Distro: $(lsb_release -ds 2>/dev/null || cat /etc/*release | grep PRETTY_NAME | cut -d= -f2 | tr -d '"')"
+    echo "Kernel: $(uname -r)"
+    echo "Uptime: $(uptime -p)"
+    echo "CPU: $(lscpu | grep 'Model name' | awk -F: '{print $2}' | xargs)"
+    echo "RAM: $(free -h | awk '/Mem:/ {print $2" total, "$3" used, "$4" free"}')"
+    echo "Disk: $(df -h / | awk 'NR==2{print $2" total, "$3" used, "$4" free"}')"
+    echo "IP: $(hostname -I | awk '{print $1}')"
+    echo ""
+    read -rp "Press Enter to return to main menu..."
+    main_menu
+}
+
+check_internet() {
+    echo "Checking internet connection..."
+    if ping -c 1 1.1.1.1 &>/dev/null; then
+        echo -e "\033[1;42mInternet connection is available.\033[0m"
+    else
+        highlighted_warning "No internet connection detected!"
+    fi
+    read -rp "Press Enter to return to main menu..."
+    main_menu
+}
+
+show_help() {
+    centered_heading "==== Help / About ====" "LAMX - Linux App Manager eXtended"
+    echo "Version: 1.0"
+    echo "Author: saitamasahil"
+    echo ""
+    echo "Usage:"
+    echo "  If you copied this script to /usr/local/bin as 'lamx', just run: lamx"
+    echo "  Or run it directly: ./lamx"
+    echo ""
+    echo "Features:"
+    echo "- Manage apps and system tools for APT, Pacman, DNF, DEB, RPM, Snap, Flatpak, Firmware, NVIDIA, Tuned."
+    echo "- Unified TUI menu."
+    echo "- Bold, highlighted warnings for missing tools and critical errors."
+    echo "- Modern, safe commands."
+    echo "- System info, internet check, and more."
+    echo "- Dry-run/preview and confirmation for removals."
+    echo ""
+    echo "Tips:"
+    echo "- Type the number to select menu options."
+    echo "- For uninstall/cleanup, you'll see a preview and be asked to confirm."
+    echo "- For help, rerun this menu."
+    echo ""
+    read -rp "Press Enter to return to main menu..."
+    main_menu
+}
+
+# APT App Manager
+apt_manager() {
+    if ! command -v apt &>/dev/null; then
+        highlighted_warning "APT is not available on this system!"
+        read -rp "Press Enter to return to main menu..."
+        main_menu
+        return
+    fi
+    while true; do
+        centered_heading "=================" "APT App Manager"
+        echo "Select Your Choice:"
+        echo " 1. List All Apps"
+        echo " 2. List User Installed Apps"
+        echo " 3. Update All Apps"
+        echo " 4. Search & Install App"
+        echo " 5. Uninstall App"
+        echo " 6. Delete APT Cache & Unnecessary Data"
+        echo " 7. Go Back To Main Menu"
+        echo ""
+        read -p "Enter your choice: " choice
+        case $choice in
+            1) echo "Listing All Apps:"; apt list --installed; read -rp "Press Enter to continue...";;
+            2) echo "Listing User Installed Apps:"; apt-mark showmanual; read -rp "Press Enter to continue...";;
+            3) echo "Updating All Apps..."; sudo apt update; sudo apt full-upgrade -y; read -rp "Press Enter to continue...";;
+            4) read -rp "Enter the app name to search: " app_name; apt search "$app_name"; read -rp "Enter the exact app name to install: " app_install; sudo apt install "$app_install"; read -rp "Press Enter to continue...";;
+            5) read -rp "Enter the app name to uninstall: " app_name; preview_and_confirm "apt -s remove $app_name" "sudo apt remove $app_name" "$app_name (APT)";;
+            6) echo "Deleting APT Cache & Unnecessary Data..."; sudo apt autoclean; sudo apt autoremove --purge -y; sudo rm -rf /var/cache/apt/archives/*; read -rp "Press Enter to continue...";;
+            7) main_menu; return;;
+            *) highlighted_warning "Invalid choice. Please try again."; sleep 2;;
+        esac
+    done
+}
+
+# Pacman App Manager
+pacman_manager() {
+    if ! command -v pacman &>/dev/null; then
+        highlighted_warning "Pacman is not available on this system!"
+        read -rp "Press Enter to return to main menu..."
+        main_menu
+        return
+    fi
+    while true; do
+        centered_heading "====================" "Pacman App Manager"
+        echo "Select Your Choice:"
+        echo " 1. List All Apps"
+        echo " 2. List User Installed Apps"
+        echo " 3. Update All Apps"
+        echo " 4. Search & Install App"
+        echo " 5. Uninstall App"
+        echo " 6. Delete Pacman Cache & Unnecessary Data"
+        echo " 7. Go Back To Main Menu"
+        echo ""
+        read -p "Enter your choice: " choice
+        case $choice in
+            1) echo "Listing All Apps:"; pacman -Q; read -rp "Press Enter to continue...";;
+            2) echo "Listing User Installed Apps:"; pacman -Qe; read -rp "Press Enter to continue...";;
+            3) echo "Updating All Apps..."; sudo pacman -Syu --noconfirm; read -rp "Press Enter to continue...";;
+            4) read -rp "Enter the app name to search: " app_name; pacman -Ss "$app_name"; read -rp "Enter the exact app name to install: " app_install; sudo pacman -S "$app_install"; read -rp "Press Enter to continue...";;
+            5) read -rp "Enter the app name to uninstall: " app_name; preview_and_confirm "pacman -p -R $app_name" "sudo pacman -R $app_name" "$app_name (Pacman)";;
+            6) echo "Deleting Pacman Cache & Unnecessary Data..."; sudo pacman -Sc --noconfirm; sudo pacman -Rns --noconfirm $(pacman -Qtdq 2>/dev/null); read -rp "Press Enter to continue...";;
+            7) main_menu; return;;
+            *) highlighted_warning "Invalid choice. Please try again."; sleep 2;;
+        esac
+    done
+}
+
+# DNF App Manager
+dnf_manager() {
+    if ! command -v dnf &>/dev/null; then
+        highlighted_warning "DNF is not available on this system!"
+        read -rp "Press Enter to return to main menu..."
+        main_menu
+        return
+    fi
+    while true; do
+        centered_heading "=================" "DNF App Manager"
+        echo "Select Your Choice:"
+        echo " 1. List All Apps"
+        echo " 2. List User Installed Apps"
+        echo " 3. Update All Apps"
+        echo " 4. Search & Install App"
+        echo " 5. Uninstall App"
+        echo " 6. Delete DNF Cache & Unnecessary Data"
+        echo " 7. List All Groups"
+        echo " 8. List Installed Groups"
+        echo " 9. Go Back To Main Menu"
+        echo ""
+        read -p "Enter your choice: " choice
+        case $choice in
+            1) echo "Listing All Apps:"; dnf list --installed; read -rp "Press Enter to continue...";;
+            2) echo "Listing User Installed Apps:"; dnf repoquery --userinstalled; read -rp "Press Enter to continue...";;
+            3) echo "Updating All Apps..."; sudo dnf upgrade --refresh; read -rp "Press Enter to continue...";;
+            4) read -rp "Enter the app name to search: " app_name; dnf search "$app_name"; read -rp "Enter the exact app name to install: " app_install; sudo dnf install "$app_install"; read -rp "Press Enter to continue...";;
+            5) read -rp "Enter the app name to uninstall: " app_name; preview_and_confirm "dnf repoquery --whatrequires $app_name" "sudo dnf remove $app_name" "$app_name (DNF)";;
+            6) echo "Deleting DNF Cache & Unnecessary Data..."; sudo dnf clean all; sudo dnf autoremove -y; read -rp "Press Enter to continue...";;
+            7) echo "Listing All Groups:"; dnf group list --hidden; read -rp "Do you want to install any group from the list? (Y/n): " choice2; if [[ $choice2 == "Y" || $choice2 == "y" ]]; then read -rp "Enter the name of the group you want to install: " group_name; sudo dnf group install "$group_name" -y; echo "Operation completed successfully."; fi; read -rp "Press Enter to continue...";;
+            8) echo "Listing Installed Groups:"; dnf group list --hidden --installed; read -rp "Press Enter to continue...";;
+            9) main_menu; return;;
+            *) highlighted_warning "Invalid choice. Please try again."; sleep 2;;
+        esac
+    done
+}
+
+# DEB App Manager
+deb_manager() {
+    if ! command -v dpkg &>/dev/null; then
+        highlighted_warning "dpkg (DEB) is not available on this system!"
+        read -rp "Press Enter to return to main menu..."
+        main_menu
+        return
+    fi
+    while true; do
+        centered_heading "=================" "DEB App Manager"
+        echo "Select Your Choice:"
+        echo " 1. List All Apps"
+        echo " 2. Search Installed App"
+        echo " 3. Install DEB Package"
+        echo " 4. Uninstall App"
+        echo " 5. Go Back To Main Menu"
+        echo ""
+        read -p "Enter your choice: " choice
+        case $choice in
+            1) echo "Listing All Installed DEB Packages:"; dpkg -l; read -rp "Press Enter to continue...";;
+            2) read -rp "Enter the name or keyword of the DEB package to search: " keyword; dpkg -l | grep "$keyword"; read -rp "Press Enter to continue...";;
+            3) read -rp "Enter the local path or URL of the DEB file: " file_path; if [[ $file_path == http* ]]; then wget "$file_path"; file_name=${file_path##*/}; sudo dpkg -i "$file_name"; rm "$file_name"; else sudo dpkg -i "$file_path"; fi; read -rp "Press Enter to continue...";;
+            4) read -rp "Enter the name of the DEB package to remove: " package_name; sudo dpkg -r "$package_name"; read -rp "Press Enter to continue...";;
+            5) main_menu; return;;
+            *) highlighted_warning "Invalid choice. Please try again."; sleep 2;;
+        esac
+    done
+}
+
+# RPM App Manager
+rpm_manager() {
+    if ! command -v rpm &>/dev/null; then
+        highlighted_warning "RPM is not available on this system!"
+        read -rp "Press Enter to return to main menu..."
+        main_menu
+        return
+    fi
+    while true; do
+        centered_heading "=================" "RPM App Manager"
+        echo "Select Your Choice:"
+        echo " 1. List All Apps"
+        echo " 2. Search Installed App"
+        echo " 3. Install RPM Package"
+        echo " 4. Uninstall App"
+        echo " 5. Go Back To Main Menu"
+        echo ""
+        read -p "Enter your choice: " choice
+        case $choice in
+            1) echo "Listing All Installed RPM Packages:"; rpm -qa; read -rp "Press Enter to continue...";;
+            2) read -rp "Enter the name or keyword of the RPM package to search: " keyword; rpm -qa | grep "$keyword"; read -rp "Press Enter to continue...";;
+            3) read -rp "Enter the local path or URL of the RPM file: " file_path; if [[ $file_path == http* ]]; then wget "$file_path"; file_name=${file_path##*/}; sudo rpm -i "$file_name"; rm "$file_name"; else sudo rpm -i "$file_path"; fi; read -rp "Press Enter to continue...";;
+            4) read -rp "Enter the name of the RPM package to remove: " package_name; preview_and_confirm "rpm -q --whatrequires $package_name" "sudo rpm -e $package_name" "$package_name (RPM)";;
+            5) main_menu; return;;
+            *) highlighted_warning "Invalid choice. Please try again."; sleep 2;;
+        esac
+    done
+}
+
+# Snap App Manager
+snap_manager() {
+    if ! command -v snap &>/dev/null; then
+        highlighted_warning "Snap is not available on this system!"
+        read -rp "Press Enter to return to main menu..."
+        main_menu
+        return
+    fi
+    while true; do
+        centered_heading "==================" "Snap App Manager"
+        echo "Select Your Choice:"
+        echo " 1. Snap Installer/Uninstaller"
+        echo " 2. List All Apps Including Core Components"
+        echo " 3. List Installed Apps Excluding Core Components"
+        echo " 4. Update All Apps"
+        echo " 5. Search & Install App"
+        echo " 6. Uninstall App"
+        echo " 7. Downgrade App"
+        echo " 8. Manage Permissions"
+        echo " 9. Go Back To Main Menu"
+        echo ""
+        read -p "Enter your choice: " choice
+        case $choice in
+            1) setup_snap ;;
+            2) echo "Listing All Apps Including Core Components:"; snap list; read -rp "Press Enter to continue...";;
+            3) echo "Listing Installed Apps Excluding Core Component:"; snap list | grep -v "^core"; read -rp "Press Enter to continue...";;
+            4) echo "Updating All Apps..."; sudo snap refresh; read -rp "Press Enter to continue...";;
+            5) read -rp "Enter the app name to search: " app_name; snap find "$app_name"; read -rp "Enter the exact app name to install: " app_install; sudo snap install "$app_install"; read -rp "Press Enter to continue...";;
+            6) read -rp "Enter the app name to uninstall: " app_name; preview_and_confirm "snap list | grep $app_name" "sudo snap remove --purge $app_name" "$app_name (Snap)";;
+            7) read -rp "Enter the app name to downgrade: " app_name; snap list "$app_name" --all; read -rp "Enter the revision number to downgrade to: " rev_num; sudo snap revert "$app_name" --revision "$rev_num"; read -rp "Press Enter to continue...";;
+            8) manage_snap_permissions ;;
+            9) main_menu; return;;
+            *) highlighted_warning "Invalid choice. Please try again."; sleep 2;;
+        esac
+    done
+}
+
+setup_snap() {
+    echo ""
+    if command -v snap >/dev/null; then
+        echo "Snap is already installed."
+        read -rp "Do you want to uninstall snap including all snap packages/apps? (y/n): " choice
+        case $choice in
+        [yY]*)
+            echo "Uninstalling snap..."
+            if command -v apt >/dev/null; then
+                sudo apt remove --purge snapd -y
+            elif command -v dnf >/dev/null; then
+                sudo dnf remove snapd -y
+            elif command -v yum >/dev/null; then
+                sudo yum remove snapd -y
+            elif command -v zypper >/dev/null; then
+                sudo zypper remove snapd
+            elif command -v pacman >/dev/null; then
+                sudo pacman -Rns snapd
+            else
+                highlighted_warning "Sorry, I don't know how to uninstall snap on your system."
+            fi
+            ;;
+        [nN]*)
+            echo "OK, keeping snap." ;;
+        *)
+            highlighted_warning "Invalid input. Please enter y or n." ;;
+        esac
+    else
+        echo "Snap is not installed."
+        read -rp "Do you want to install snap? (y/n): " choice
+        case $choice in
+        [yY]*)
+            echo "Installing snap..."
+            if command -v apt >/dev/null; then
+                sudo apt update && sudo apt install snapd -y
+            elif command -v dnf >/dev/null; then
+                sudo dnf install snapd -y
+            elif command -v yum >/dev/null; then
+                sudo yum install epel-release -y && sudo yum install snapd -y
+            elif command -v zypper >/dev/null; then
+                sudo zypper addrepo --refresh https://download.opensuse.org/repositories/system:/snappy/openSUSE_Leap_15.2 snappy && sudo zypper --gpg-auto-import-keys refresh && sudo zypper dup --from snappy && sudo zypper install snapd
+                sudo systemctl enable --now snapd
+                sudo systemctl enable --now snapd.apparmor
+            elif command -v pacman >/dev/null; then
+                sudo pacman -S --needed base-devel git
+                git clone https://aur.archlinux.org/snapd.git
+                cd snapd
+                makepkg -si
+                sudo systemctl enable --now snapd.socket
+                sudo ln -s /var/lib/snapd/snap /snap
+            else
+                highlighted_warning "Sorry, I don't know how to install snap on your system."
+            fi
+            echo "Activating snap..."
+            sudo snap install core
+            sudo snap install snap-store
+            sudo systemctl enable --now snapd.socket
+            sudo ln -s /var/lib/snapd/snap /snap
+            echo "NOTE: To complete the installation, restart your machine."
+            ;;
+        [nN]*)
+            echo "OK, not installing snap." ;;
+        *)
+            highlighted_warning "Invalid input. Please enter y or n." ;;
+        esac
+    fi
+    read -rp "Press Enter to continue..."
+}
+
+manage_snap_permissions() {
+    echo "Managing Permissions of Snap Apps..."
+    snap list | grep -v "^core"
+    read -rp "Enter the name of the app you want to manage: " app
+    if snap list | grep -q "^$app"; then
+        snap connections $app
+        read -rp "Enter the name of the interface you want to manage: " interface
+        if snap connections $app | grep -q "$interface"; then
+            read -rp "Choose an action: connect, disconnect, or cancel: " action
+            case $action in
+            connect)
+                snap connect $app:$interface
+                echo "$app is connected to $interface."
+                ;;
+            disconnect)
+                snap disconnect $app:$interface
+                echo "$app is disconnected from $interface."
+                ;;
+            cancel)
+                echo "Operation cancelled!"
+                return
+                ;;
+            *)
+                highlighted_warning "Invalid action, please choose connect, disconnect, or cancel."
+                return
+                ;;
+            esac
+        else
+            highlighted_warning "$interface is not a valid interface for $app."
+            return
+        fi
+    else
+        highlighted_warning "$app is not a valid Snap app."
+        return
+    fi
+    read -rp "Press Enter to continue..."
+}
+
+# Flatpak App Manager
+flatpak_manager() {
+    if ! command -v flatpak &>/dev/null; then
+        highlighted_warning "Flatpak is not available on this system!"
+        read -rp "Press Enter to return to main menu..."
+        main_menu
+        return
+    fi
+    while true; do
+        centered_heading "=====================" "Flatpak App Manager"
+        echo "Select Your Choice:"
+        echo " 1. Flatpak Installer/Uninstaller"
+        echo " 2. Add FlatHub Repository"
+        echo " 3. List All Apps Including Runtimes"
+        echo " 4. List User Installed Apps"
+        echo " 5. Update All Apps"
+        echo " 6. Search & Install App"
+        echo " 7. Uninstall App"
+        echo " 8. Downgrade App"
+        echo " 9. Delete Unused Runtime & Flatpak Cache"
+        echo "10. Manage Permissions"
+        echo "11. Go Back To Main Menu"
+        echo ""
+        read -p "Enter your choice: " choice
+        case $choice in
+            1) setup_flatpak ;;
+            2) flatpak remote-add --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo; echo "Flathub repo added successfully."; read -rp "Press Enter to continue...";;
+            3) echo "Listing All Apps Including Runtimes:"; flatpak list; read -rp "Press Enter to continue...";;
+            4) echo "Listing User Installed Apps:"; flatpak list --app; read -rp "Press Enter to continue...";;
+            5) echo "Updating All Apps..."; flatpak update -y; read -rp "Press Enter to continue...";;
+            6) read -rp "Enter the app name to search: " app_name; flatpak search "$app_name"; read -rp "Enter the exact application id to install: " app_install; flatpak install "$app_install"; read -rp "Press Enter to continue...";;
+            7) read -rp "Enter the app name to uninstall: " app_name; preview_and_confirm "flatpak info $app_name" "flatpak uninstall $app_name" "$app_name (Flatpak)";;
+            8) read -rp "Enter the application id to downgrade: " app_id; flatpak remote-info --log flathub "$app_id"; read -rp "Enter the commit ID of the version you want: " commit_id; sudo flatpak update --commit="$commit_id" "$app_id"; read -rp "Press Enter to continue...";;
+            9) echo "Deleting Unused Runtime & Flatpak Cache..."; flatpak uninstall --unused; flatpak repair --user; flatpak repair --system; rm -rf ~/.var/app/*/.cache; read -rp "Press Enter to continue...";;
+            10) manage_flatpak_permissions ;;
+            11) main_menu; return;;
+            *) highlighted_warning "Invalid choice. Please try again."; sleep 2;;
+        esac
+    done
+}
+
+setup_flatpak() {
+    echo ""
+    if command -v flatpak >/dev/null; then
+        echo "Flatpak is already installed."
+        read -rp "Do you want to uninstall flatpak including all flatpak apps? (y/n): " choice
+        case $choice in
+        [yY]*)
+            echo "Uninstalling flatpak..."
+            flatpak uninstall --unused
+            flatpak uninstall --all
+            if command -v apt >/dev/null; then
+                sudo apt remove --purge flatpak -y
+            elif command -v dnf >/dev/null; then
+                sudo dnf remove flatpak -y
+            elif command -v yum >/dev/null; then
+                sudo yum remove flatpak -y
+            elif command -v zypper >/dev/null; then
+                sudo zypper remove flatpak
+            elif command -v pacman >/dev/null; then
+                sudo pacman -R flatpak
+            else
+                highlighted_warning "Sorry, I don't know how to uninstall flatpak on your system."
+            fi
+            ;;
+        [nN]*)
+            echo "OK, keeping flatpak." ;;
+        *)
+            highlighted_warning "Invalid input. Please enter y or n." ;;
+        esac
+    else
+        echo "Flatpak is not installed."
+        read -rp "Do you want to install flatpak? (y/n): " choice
+        case $choice in
+        [yY]*)
+            echo "Installing flatpak..."
+            if command -v apt >/dev/null; then
+                sudo apt update && sudo apt install flatpak -y
+            elif command -v dnf >/dev/null; then
+                sudo dnf install flatpak -y
+            elif command -v yum >/dev/null; then
+                sudo yum install epel-release -y && sudo yum install flatpak -y
+            elif command -v zypper >/dev/null; then
+                sudo zypper install flatpak
+            elif command -v pacman >/dev/null; then
+                sudo pacman -S flatpak
+            else
+                highlighted_warning "Sorry, I don't know how to install flatpak on your system."
+            fi
+            echo "Adding flathub repo..."
+            flatpak remote-add --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
+            echo "NOTE: To complete the installation, restart your machine."
+            ;;
+        [nN]*)
+            echo "OK, not installing flatpak." ;;
+        *)
+            highlighted_warning "Invalid input. Please enter y or n." ;;
+        esac
+    fi
+    read -rp "Press Enter to continue..."
+}
+
+manage_flatpak_permissions() {
+    echo "Managing Permissions for Flatpak Apps..."
+    if flatpak list --app | grep -q "Flatseal"; then
+        :
+    else
+        highlighted_warning "Flatseal is not installed. Installing it now..."
+        flatpak install com.github.tchx84.Flatseal -y
+    fi
+    echo "Launching Flatseal..."
+    flatpak run com.github.tchx84.Flatseal &
+    sleep 3
+    echo "Waiting for Flatseal to close..."
+    wait
+    echo "Flatseal has closed."
+    read -rp "Press Enter to continue..."
+}
+
+# Firmware Manager
+firmware_manager() {
+    if ! command -v fwupdmgr &>/dev/null; then
+        highlighted_warning "fwupdmgr is not available on this system!"
+        read -rp "Press Enter to return to main menu..."
+        main_menu
+        return
+    fi
+    check_fwupdmgr() {
+        if command -v fwupdmgr >/dev/null; then
+            return 0
+        else
+            highlighted_warning "fwupdmgr is not installed."
+            read -rp "Do you want to install fwupdmgr? (Y/n): " install_choice
+            case $install_choice in
+            [yY]*)
+                install_fwupdmgr ;;
+            *)
+                main_menu; return ;;
+            esac
+        fi
+    }
+    install_fwupdmgr() {
+        echo "Installing fwupdmgr..."
+        if command -v apt >/dev/null; then
+            sudo apt update && sudo apt install fwupd -y
+        elif command -v dnf >/dev/null; then
+            sudo dnf install fwupd -y
+        elif command -v yum >/dev/null; then
+            sudo yum install fwupd -y
+        elif command -v zypper >/dev/null; then
+            sudo zypper install fwupd
+        elif command -v pacman >/dev/null; then
+            sudo pacman -S fwupd
+        else
+            highlighted_warning "Sorry, I don't know how to install fwupdmgr on your system."
+            main_menu; return
+        fi
+    }
+    while true; do
+        centered_heading "=====================" "Firmware Manager"
+        echo "Select Your Choice:"
+        echo " 1. Check for Firmware Updates"
+        echo " 2. Download and Install Firmware Updates"
+        echo " 3. Show More Info about Firmware Updates"
+        echo " 4. Refresh Metadata"
+        echo " 5. Rollback Firmware"
+        echo " 6. Go Back To Main Menu"
+        echo ""
+        read -p "Enter your choice: " choice
+        case $choice in
+            1) check_fwupdmgr; echo "Checking for Firmware Updates..."; fwupdmgr get-devices; read -rp "Press Enter to continue...";;
+            2) check_fwupdmgr; echo "Downloading and Installing Firmware Updates..."; sudo fwupdmgr update; read -rp "Press Enter to continue...";;
+            3) check_fwupdmgr; echo "Showing More Information about Firmware Updates..."; sudo fwupdmgr get-updates; read -rp "Press Enter to continue...";;
+            4) check_fwupdmgr; echo "Refreshing Firmware Metadata..."; sudo fwupdmgr refresh --force; read -rp "Press Enter to continue...";;
+            5) check_fwupdmgr; echo "Performing Firmware Rollback..."; sudo fwupdmgr downgrade; read -rp "Press Enter to continue...";;
+            6) main_menu; return;;
+            *) highlighted_warning "Invalid choice. Please try again."; sleep 2;;
+        esac
+    done
+}
+
+# NVIDIA Driver Manager
+nvidia_manager() {
+    if ! command -v lspci &>/dev/null; then
+        highlighted_warning "lspci is not available on this system! Cannot detect NVIDIA GPU."
+        read -rp "Press Enter to return to main menu..."
+        main_menu
+        return
+    fi
+    detect_nvidia_gpu() {
+        lspci | grep -i nvidia >/dev/null 2>&1
+        if [ $? -eq 0 ]; then
+            echo "NVIDIA GPU detected."
+            sleep 2
+            return 0
+        else
+            highlighted_warning "No NVIDIA GPU detected."
+            sleep 2
+            return 1
+        fi
+    }
+    install_drivers_debian() {
+        echo "Installing NVIDIA drivers on Debian-based system..."
+        sudo apt update
+        sudo apt install -y dkms build-essential linux-headers-$(uname -r)
+        sudo apt install -y nvidia-driver
+        echo "NVIDIA drivers installed on Debian-based system."
+        read -rp "Press Enter to continue..."
+    }
+    install_drivers_redhat() {
+        echo "Installing NVIDIA drivers on Red Hat-based system..."
+        sudo dnf update -y
+        sudo dnf install -y dkms kernel-devel gcc
+        sudo dnf config-manager --add-repo=https://negativo17.org/repos/fedora-nvidia.repo
+        sudo dnf install -y nvidia-driver
+        echo "NVIDIA drivers installed on Red Hat-based system."
+        read -rp "Press Enter to continue..."
+    }
+    install_drivers_arch() {
+        echo "Installing NVIDIA drivers on Arch-based system..."
+        sudo pacman -Syu --noconfirm
+        sudo pacman -S --noconfirm nvidia-dkms nvidia-utils
+        echo "NVIDIA drivers installed on Arch-based system."
+        read -rp "Press Enter to continue..."
+    }
+    install_drivers_suse() {
+        echo "Installing NVIDIA drivers on SUSE-based system..."
+        sudo zypper refresh
+        sudo zypper install -y dkms kernel-default-devel gcc
+        sudo zypper addrepo --refresh https://download.nvidia.com/opensuse/leap/$releasever NVIDIA
+        sudo zypper install -y x11-video-nvidiaG05
+        echo "NVIDIA drivers installed on SUSE-based system."
+        read -rp "Press Enter to continue..."
+    }
+    while true; do
+        centered_heading "=======================" "NVIDIA Driver Manager"
+        echo "Select Your Choice:"
+        echo " 1. Detect NVIDIA GPU"
+        echo " 2. Install NVIDIA Drivers"
+        echo " 3. List Installed NVIDIA Packages"
+        echo " 4. Uninstall NVIDIA Drivers"
+        echo " 5. Go Back to Main Menu"
+        echo ""
+        read -p "Enter your choice: " choice
+        case $choice in
+            1) detect_nvidia_gpu; read -rp "Press Enter to continue...";;
+            2) if detect_nvidia_gpu; then
+                    if command -v apt &>/dev/null; then install_drivers_debian
+                    elif command -v dnf &>/dev/null; then install_drivers_redhat
+                    elif command -v pacman &>/dev/null; then install_drivers_arch
+                    elif command -v zypper &>/dev/null; then install_drivers_suse
+                    else highlighted_warning "Unsupported package manager."; fi
+                else read -rp "Press Enter to continue..."; fi;;
+            3) echo "Listing installed NVIDIA packages..."; if command -v apt &>/dev/null; then dpkg -l | grep -i nvidia; elif command -v dnf &>/dev/null; then rpm -qa | grep -i nvidia; elif command -v pacman &>/dev/null; then pacman -Qs nvidia; elif command -v zypper &>/dev/null; then zypper se --installed-only nvidia; else highlighted_warning "Unsupported package manager."; fi; read -rp "Press Enter to continue...";;
+            4) echo "Uninstalling NVIDIA drivers..."; if command -v apt &>/dev/null; then sudo apt remove --purge -y nvidia-*; elif command -v dnf &>/dev/null; then sudo dnf remove -y nvidia-driver; elif command -v pacman &>/dev/null; then sudo pacman -Rns --noconfirm nvidia-dkms nvidia-utils; elif command -v zypper &>/dev/null; then sudo zypper rm -y x11-video-nvidiaG05; else highlighted_warning "Unsupported package manager."; fi; echo "Task completed."; read -rp "Press Enter to continue...";;
+            5) main_menu; return;;
+            *) highlighted_warning "Invalid choice. Please try again."; sleep 2;;
+        esac
+    done
+}
+
+# Tuned Power Profile Manager
+tuned_manager() {
+    if ! command -v tuned-adm &>/dev/null; then
+        highlighted_warning "tuned-adm is not available on this system!"
+        read -rp "Press Enter to return to main menu..."
+        main_menu
+        return
+    fi
+    while true; do
+        centered_heading "=============================" "Tuned Power Profile Manager"
+        echo "Select Your Choice:"
+        echo " 1. Install Tuned"
+        echo " 2. Uninstall Tuned"
+        echo " 3. List Available Profiles"
+        echo " 4. Show Active Profile"
+        echo " 5. Set Active Profile"
+        echo " 6. Enable Tuned Service"
+        echo " 7. Disable Tuned Service"
+        echo " 8. Check Tuned Service Status"
+        echo " 9. Go Back To Main Menu"
+        echo ""
+        read -p "Enter your choice: " choice
+        case $choice in
+            1) echo "Installing Tuned and Tuned PPD..."; if command -v apt >/dev/null; then sudo apt update && sudo apt install tuned -y; sudo systemctl enable tuned; sudo systemctl start tuned; elif command -v dnf >/dev/null; then sudo dnf install tuned tuned-ppd -y; sudo systemctl enable tuned; sudo systemctl start tuned; elif command -v yum >/dev/null; then sudo yum install tuned tuned-ppd -y; sudo systemctl enable tuned; sudo systemctl start tuned; elif command -v zypper >/dev/null; then sudo zypper install tuned tuned-ppd -y; sudo systemctl enable tuned; sudo systemctl start tuned; elif command -v pacman >/dev/null; then sudo pacman -S tuned tuned-ppd --noconfirm; sudo systemctl enable tuned; sudo systemctl start tuned; else highlighted_warning "Sorry, I don't know how to install Tuned on your system."; fi; read -rp "Press Enter to continue...";;
+            2) echo "Uninstalling Tuned..."; if command -v apt >/dev/null; then sudo apt remove --purge tuned -y; elif command -v dnf >/dev/null; then sudo dnf remove tuned -y; elif command -v yum >/dev/null; then sudo yum remove tuned -y; elif command -v zypper >/dev/null; then sudo zypper remove tuned; elif command -v pacman >/dev/null; then sudo pacman -R tuned; else highlighted_warning "Sorry, I don't know how to uninstall Tuned on your system."; fi; read -rp "Press Enter to continue...";;
+            3) echo "Checking Profiles..."; tuned-adm list; read -rp "Press Enter to continue...";;
+            4) echo "Checking Profiles..."; tuned-adm active; read -rp "Press Enter to continue...";;
+            5) read -rp "Enter the name of the profile to activate: " profile_name; echo "Setting active profile to $profile_name..."; tuned-adm profile "$profile_name"; read -rp "Press Enter to continue...";;
+            6) echo "Enabling Tuned Service..."; sudo systemctl enable tuned; sudo systemctl start tuned; echo "Tuned Service has been enabled and started."; read -rp "Press Enter to continue...";;
+            7) echo "Disabling Tuned Service..."; sudo systemctl stop tuned; sudo systemctl disable tuned; echo "Tuned Service has been disabled."; read -rp "Press Enter to continue...";;
+            8) echo "Checking Tuned Service Status..."; systemctl status tuned --no-pager; read -rp "Press Enter to continue...";;
+            9) main_menu; return;;
+            *) highlighted_warning "Invalid choice. Please try again."; sleep 2;;
+        esac
+    done
+}
+
+# Update All Packages
+update_all_packages() {
+    echo ""
+    # Update all supported package managers, with clear feedback for each
+    if command -v apt &>/dev/null; then
+        echo -e "\033[1mapt is available, updating packages...\033[0m"
+        sudo apt update && sudo apt full-upgrade -y
+    else
+        highlighted_warning "apt is not available, skipping..."
+    fi
+    if command -v pacman &>/dev/null; then
+        echo -e "\033[1mpacman is available, updating packages...\033[0m"
+        sudo pacman -Syu --noconfirm
+    else
+        highlighted_warning "pacman is not available, skipping..."
+    fi
+    if command -v dnf &>/dev/null; then
+        echo -e "\033[1mdnf is available, updating packages...\033[0m"
+        sudo dnf upgrade --refresh
+    else
+        highlighted_warning "dnf is not available, skipping..."
+    fi
+    if command -v snap &>/dev/null; then
+        echo -e "\033[1msnap is installed, updating packages...\033[0m"
+        sudo snap refresh
+    else
+        highlighted_warning "snap is not installed, skipping..."
+    fi
+    if command -v flatpak &>/dev/null; then
+        echo -e "\033[1mflatpak is installed, updating packages...\033[0m"
+        flatpak update -y
+    else
+        highlighted_warning "flatpak is not installed, skipping..."
+    fi
+    echo -e "\033[1;42mAll done!\033[0m"
+    read -rp "Press Enter to continue..."
+    main_menu
+}
+
+# Dry-run/Preview and Confirmation for Removals
+# Helper for preview and confirm before uninstall
+preview_and_confirm() {
+    local preview_cmd="$1"
+    local action_cmd="$2"
+    local what="$3"
+    echo "Preview of what will be removed for $what:"
+    eval "$preview_cmd"
+    echo ""
+    read -rp "Proceed with removal? (y/n): " confirm
+    case $confirm in
+        [yY]*)
+            eval "$action_cmd"
+            echo "$what removed."
+            ;;
+        *)
+            echo "Aborted."
+            ;;
+    esac
+    read -rp "Press Enter to continue..."
+}
+
+# Start the app
+main_menu
