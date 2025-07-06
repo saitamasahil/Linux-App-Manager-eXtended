@@ -7,13 +7,15 @@
 # Function to clear the screen and print a centered heading
 centered_heading() {
     clear
-    echo ""
     COLUMNS=$(tput cols)
     t1="$1"
-    t2="$2"
-    printf "\033[1m%*s\033[0m\n" $(((${#t1} + $COLUMNS) / 2)) "$t1"
-    printf "\033[1m%*s\033[0m\n" $(((${#t2} + $COLUMNS) / 2)) "$t2"
-    printf "\033[1m%*s\033[0m\n" $(((${#t1} + $COLUMNS) / 2)) "$t1"
+    # Box drawing heading
+    top_line="╔$(printf '%0.s═' $(seq 1 $((COLUMNS-2))))╗"
+    mid_line="║$(printf '%*s' $(((COLUMNS + ${#t1}) / 2 - 1)) "$t1")$(printf '%*s' $((COLUMNS - ((COLUMNS + ${#t1}) / 2) - 1)) "")║"
+    bot_line="╚$(printf '%0.s═' $(seq 1 $((COLUMNS-2))))╝"
+    echo -e "\033[1m$top_line\033[0m"
+    echo -e "\033[1m$mid_line\033[0m"
+    echo -e "\033[1m$bot_line\033[0m"
     echo ""
 }
 
@@ -23,11 +25,11 @@ highlighted_warning() {
     echo -e "\033[1;41m$1\033[0m"
 }
 
-LAMX_VERSION="1.2"
+LAMX_VERSION="1.3"
 
 # Main Menu - Entry point for the app
 main_menu() {
-    centered_heading "====================" "Linux App Manager eXtended"
+    centered_heading "Linux App Manager eXtended"
     echo "Select Your Choice:"
     echo " 1. APT App Manager"
     echo " 2. Pacman App Manager"
@@ -48,11 +50,11 @@ main_menu() {
     echo ""
     read -p "Enter your choice: " choice
     case $choice in
-        1) apt_manager ;;
-        2) pacman_manager ;;
-        3) dnf_manager ;;
-        4) deb_manager ;;
-        5) rpm_manager ;;
+        1) if command -v apt &>/dev/null; then apt_manager; else highlighted_warning "APT is not available on this system!"; sleep 2; main_menu; fi ;;
+        2) if command -v pacman &>/dev/null; then pacman_manager; else highlighted_warning "Pacman is not available on this system!"; sleep 2; main_menu; fi ;;
+        3) if command -v dnf &>/dev/null; then dnf_manager; else highlighted_warning "DNF is not available on this system!"; sleep 2; main_menu; fi ;;
+        4) if command -v dpkg &>/dev/null; then deb_manager; elif command -v apt &>/dev/null; then deb_manager; else highlighted_warning "DEB (dpkg/apt) is not available on this system!"; sleep 2; main_menu; fi ;;
+        5) if command -v rpm &>/dev/null; then rpm_manager; elif command -v dnf &>/dev/null; then rpm_manager; else highlighted_warning "RPM (rpm/dnf) is not available on this system!"; sleep 2; main_menu; fi ;;
         6) snap_manager ;;
         7) flatpak_manager ;;
         8) firmware_manager ;;
@@ -70,7 +72,7 @@ main_menu() {
 
 lamx_install_menu() {
     while true; do
-        centered_heading "==== LAMX System Installer ====" ""
+        centered_heading "LAMX System Installer"
         echo "Select Your Choice:"
         echo " 1. Install LAMX systemwide"
         echo " 2. Uninstall LAMX from system"
@@ -133,7 +135,7 @@ lamx_install_menu() {
 }
 
 show_system_info() {
-    centered_heading "==== System Information ====" ""
+    centered_heading "System Information"
     echo "Hostname: $(hostname)"
     echo "Distro: $(lsb_release -ds 2>/dev/null || cat /etc/*release | grep PRETTY_NAME | cut -d= -f2 | tr -d '"')"
     echo "Kernel: $(uname -r)"
@@ -159,8 +161,8 @@ check_internet() {
 }
 
 show_help() {
-    centered_heading "==== Help / About ====" "LAMX - Linux App Manager eXtended"
-    echo "Version: 1.2"
+    centered_heading "Help / About"
+    echo "Version: 1.3"
     echo "Author: saitamasahil"
     echo ""
     echo "Usage:"
@@ -195,7 +197,7 @@ apt_manager() {
         return
     fi
     while true; do
-        centered_heading "=================" "APT App Manager"
+        centered_heading "APT App Manager"
         echo "Select Your Choice:"
         echo " 1. List All Apps"
         echo " 2. List User Installed Apps"
@@ -228,7 +230,7 @@ pacman_manager() {
         return
     fi
     while true; do
-        centered_heading "====================" "Pacman App Manager"
+        centered_heading "Pacman App Manager"
         echo "Select Your Choice:"
         echo " 1. List All Apps"
         echo " 2. List User Installed Apps"
@@ -261,7 +263,7 @@ dnf_manager() {
         return
     fi
     while true; do
-        centered_heading "=================" "DNF App Manager"
+        centered_heading "DNF App Manager"
         echo "Select Your Choice:"
         echo " 1. List All Apps"
         echo " 2. List User Installed Apps"
@@ -298,7 +300,7 @@ deb_manager() {
         return
     fi
     while true; do
-        centered_heading "=================" "DEB App Manager"
+        centered_heading "DEB App Manager"
         echo "Select Your Choice:"
         echo " 1. List All Apps"
         echo " 2. Search Installed App"
@@ -327,7 +329,7 @@ rpm_manager() {
         return
     fi
     while true; do
-        centered_heading "=================" "RPM App Manager"
+        centered_heading "RPM App Manager"
         echo "Select Your Choice:"
         echo " 1. List All Apps"
         echo " 2. Search Installed App"
@@ -349,14 +351,8 @@ rpm_manager() {
 
 # Snap App Manager
 snap_manager() {
-    if ! command -v snap &>/dev/null; then
-        highlighted_warning "Snap is not available on this system!"
-        read -rp "Press Enter to return to main menu..."
-        main_menu
-        return
-    fi
     while true; do
-        centered_heading "==================" "Snap App Manager"
+        centered_heading "Snap App Manager"
         echo "Select Your Choice:"
         echo " 1. Snap Installer/Uninstaller"
         echo " 2. List All Apps Including Core Components"
@@ -493,14 +489,8 @@ manage_snap_permissions() {
 
 # Flatpak App Manager
 flatpak_manager() {
-    if ! command -v flatpak &>/dev/null; then
-        highlighted_warning "Flatpak is not available on this system!"
-        read -rp "Press Enter to return to main menu..."
-        main_menu
-        return
-    fi
     while true; do
-        centered_heading "=====================" "Flatpak App Manager"
+        centered_heading "Flatpak App Manager"
         echo "Select Your Choice:"
         echo " 1. Flatpak Installer/Uninstaller"
         echo " 2. Add FlatHub Repository"
@@ -612,12 +602,6 @@ manage_flatpak_permissions() {
 
 # Firmware Manager
 firmware_manager() {
-    if ! command -v fwupdmgr &>/dev/null; then
-        highlighted_warning "fwupdmgr is not available on this system!"
-        read -rp "Press Enter to return to main menu..."
-        main_menu
-        return
-    fi
     check_fwupdmgr() {
         if command -v fwupdmgr >/dev/null; then
             return 0
@@ -650,7 +634,7 @@ firmware_manager() {
         fi
     }
     while true; do
-        centered_heading "=====================" "Firmware Manager"
+        centered_heading "Firmware Manager"
         echo "Select Your Choice:"
         echo " 1. Check for Firmware Updates"
         echo " 2. Download and Install Firmware Updates"
@@ -726,7 +710,7 @@ nvidia_manager() {
         read -rp "Press Enter to continue..."
     }
     while true; do
-        centered_heading "=======================" "NVIDIA Driver Manager"
+        centered_heading "NVIDIA Driver Manager"
         echo "Select Your Choice:"
         echo " 1. Detect NVIDIA GPU"
         echo " 2. Install NVIDIA Drivers"
@@ -754,14 +738,8 @@ nvidia_manager() {
 
 # Tuned Power Profile Manager
 tuned_manager() {
-    if ! command -v tuned-adm &>/dev/null; then
-        highlighted_warning "tuned-adm is not available on this system!"
-        read -rp "Press Enter to return to main menu..."
-        main_menu
-        return
-    fi
     while true; do
-        centered_heading "=============================" "Tuned Power Profile Manager"
+        centered_heading "Tuned Power Profile Manager"
         echo "Select Your Choice:"
         echo " 1. Install Tuned"
         echo " 2. Uninstall Tuned"
