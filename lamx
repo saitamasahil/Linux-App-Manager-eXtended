@@ -23,6 +23,8 @@ highlighted_warning() {
     echo -e "\033[1;41m$1\033[0m"
 }
 
+LAMX_VERSION="1.2"
+
 # Main Menu - Entry point for the app
 main_menu() {
     centered_heading "====================" "Linux App Manager eXtended"
@@ -92,8 +94,9 @@ lamx_install_menu() {
                 read -rp "Press Enter to continue..."
                 ;;
             3)
-                echo "Downloading latest LAMX binary from GitHub..."
+                echo "Checking for latest version..."
                 tmpfile="/tmp/lamx-latest"
+                tmpver="/tmp/lamx-latest-version"
                 if command -v curl >/dev/null; then
                     curl -fsSL -o "$tmpfile" "https://raw.githubusercontent.com/saitamasahil/Linux-App-Manager-eXtended/refs/heads/main/lamx"
                 elif command -v wget >/dev/null; then
@@ -103,13 +106,20 @@ lamx_install_menu() {
                     read -rp "Press Enter to continue..."
                     continue
                 fi
-                if [ -s "$tmpfile" ]; then
-                    sudo cp "$tmpfile" /usr/local/bin/lamx && sudo chmod +x /usr/local/bin/lamx
-                    echo -e "\033[1;42mLAMX updated successfully!\033[0m"
+                # Extract version from downloaded file
+                grep '^LAMX_VERSION=' "$tmpfile" | head -n1 > "$tmpver"
+                remote_version=$(cut -d'=' -f2 "$tmpver" | tr -d '"')
+                if [ "$LAMX_VERSION" = "$remote_version" ]; then
+                    echo -e "\033[1;42mYou are already using the latest version ($LAMX_VERSION).\033[0m"
                 else
-                    highlighted_warning "Failed to download the latest LAMX binary."
+                    if [ -s "$tmpfile" ]; then
+                        sudo cp "$tmpfile" /usr/local/bin/lamx && sudo chmod +x /usr/local/bin/lamx
+                        echo -e "\033[1;42mLAMX updated successfully to version $remote_version!\033[0m"
+                    else
+                        highlighted_warning "Failed to download the latest LAMX binary."
+                    fi
                 fi
-                rm -f "$tmpfile"
+                rm -f "$tmpfile" "$tmpver"
                 read -rp "Press Enter to continue..."
                 ;;
             4)
@@ -150,7 +160,7 @@ check_internet() {
 
 show_help() {
     centered_heading "==== Help / About ====" "LAMX - Linux App Manager eXtended"
-    echo "Version: 1.1"
+    echo "Version: 1.2"
     echo "Author: saitamasahil"
     echo ""
     echo "Usage:"
