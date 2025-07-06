@@ -41,7 +41,8 @@ main_menu() {
     echo "12. Show System Info"
     echo "13. Check for Internet Connection"
     echo "14. Help/About"
-    echo "15. Exit Program"
+    echo "15. LAMX System Management (Install/Uninstall/Update)"
+    echo "16. Exit Program"
     echo ""
     read -p "Enter your choice: " choice
     case $choice in
@@ -59,9 +60,66 @@ main_menu() {
         12) show_system_info ;;
         13) check_internet ;;
         14) show_help ;;
-        15) exit 0 ;;
+        15) lamx_install_menu ;;
+        16) exit 0 ;;
         *) highlighted_warning "Invalid choice. Please try again."; sleep 2; main_menu ;;
     esac
+}
+
+lamx_install_menu() {
+    while true; do
+        centered_heading "==== LAMX System Installer ====" ""
+        echo "Select Your Choice:"
+        echo " 1. Install LAMX systemwide"
+        echo " 2. Uninstall LAMX from system"
+        echo " 3. Update LAMX (download latest from GitHub)"
+        echo " 4. Go Back To Main Menu"
+        echo ""
+        read -p "Enter your choice: " choice
+        case $choice in
+            1)
+                current_dir="$(dirname "$(realpath "$0")")"
+                sudo cp "$current_dir/lamx" /usr/local/bin/lamx && sudo chmod +x /usr/local/bin/lamx
+                echo -e "\033[1;42mLAMX installed systemwide! You can now run 'lamx' from anywhere.\033[0m"
+                read -rp "Press Enter to continue..."
+                ;;
+            2)
+                if [ -f /usr/local/bin/lamx ]; then
+                    sudo rm /usr/local/bin/lamx && echo -e "\033[1;42mLAMX uninstalled from system.\033[0m"
+                else
+                    highlighted_warning "LAMX is not installed in /usr/local/bin."
+                fi
+                read -rp "Press Enter to continue..."
+                ;;
+            3)
+                echo "Downloading latest LAMX binary from GitHub..."
+                tmpfile="/tmp/lamx-latest"
+                if command -v curl >/dev/null; then
+                    curl -fsSL -o "$tmpfile" "https://raw.githubusercontent.com/saitamasahil/Linux-App-Manager-eXtended/refs/heads/main/lamx"
+                elif command -v wget >/dev/null; then
+                    wget -O "$tmpfile" "https://raw.githubusercontent.com/saitamasahil/Linux-App-Manager-eXtended/refs/heads/main/lamx"
+                else
+                    highlighted_warning "Neither curl nor wget is available to download the update."
+                    read -rp "Press Enter to continue..."
+                    continue
+                fi
+                if [ -s "$tmpfile" ]; then
+                    sudo cp "$tmpfile" /usr/local/bin/lamx && sudo chmod +x /usr/local/bin/lamx
+                    echo -e "\033[1;42mLAMX updated successfully!\033[0m"
+                else
+                    highlighted_warning "Failed to download the latest LAMX binary."
+                fi
+                rm -f "$tmpfile"
+                read -rp "Press Enter to continue..."
+                ;;
+            4)
+                main_menu; return ;;
+            *)
+                highlighted_warning "Invalid choice. Please try again."
+                sleep 2
+                ;;
+        esac
+    done
 }
 
 show_system_info() {
@@ -92,12 +150,12 @@ check_internet() {
 
 show_help() {
     centered_heading "==== Help / About ====" "LAMX - Linux App Manager eXtended"
-    echo "Version: 1.0"
+    echo "Version: 1.1"
     echo "Author: saitamasahil"
     echo ""
     echo "Usage:"
-    echo "  If you copied this script to /usr/local/bin as 'lamx', just run: lamx"
-    echo "  Or run it directly: ./lamx"
+    echo "  Run it directly: ./lamx"
+    echo "  To install, uninstall, or update LAMX systemwide, use option 16 in the main menu."
     echo ""
     echo "Features:"
     echo "- Manage apps and system tools for APT, Pacman, DNF, DEB, RPM, Snap, Flatpak, Firmware, NVIDIA, Tuned."
@@ -106,11 +164,13 @@ show_help() {
     echo "- Modern, safe commands."
     echo "- System info, internet check, and more."
     echo "- Dry-run/preview and confirmation for removals."
+    echo "- Easy systemwide install/uninstall/update for LAMX."
     echo ""
     echo "Tips:"
     echo "- Type the number to select menu options."
     echo "- For uninstall/cleanup, you'll see a preview and be asked to confirm."
     echo "- For help, rerun this menu."
+    echo "- Use option 16 to install, uninstall, or update LAMX systemwide."
     echo ""
     read -rp "Press Enter to return to main menu..."
     main_menu
