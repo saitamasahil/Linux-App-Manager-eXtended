@@ -791,11 +791,11 @@ flatpak_manager() {
             read -rp "Press Enter to continue..."
             ;;
         7)
-            read -rp "Enter the app name to uninstall: " app_name
+            read -rp "Enter the Flatpak app ID to uninstall (tip: see option 4 to list user installed apps): " app_name
             preview_and_confirm "flatpak info $app_name" "flatpak uninstall $app_name" "$app_name (Flatpak)"
             ;;
         8)
-            read -rp "Enter the application id to downgrade: " app_id
+            read -rp "Enter the Flatpak app ID to downgrade (tip: see option 4 to list user installed apps): " app_id
             flatpak remote-info --log flathub "$app_id"
             read -rp "Enter the commit ID of the version you want: " commit_id
             sudo flatpak update --commit="$commit_id" "$app_id"
