@@ -179,7 +179,13 @@ show_system_info() {
     echo "CPU: $(lscpu | grep 'Model name' | awk -F: '{print $2}' | xargs)"
     echo "RAM: $(free -h | awk '/Mem:/ {print $2" total, "$3" used, "$4" free"}')"
     echo "Disk: $(df -h / | awk 'NR==2{print $2" total, "$3" used, "$4" free"}')"
-    echo "IP: $(ifconfig | grep -Eo 'inet (addr:)?([0-9]*\.){3}[0-9]*' | grep -Eo '([0-9]*\.){3}[0-9]*' | grep -v '127.0.0.1')"
+    set -- $(hostname -I)
+    if [ -n "$1" ]; then
+        echo "IP: $1"
+    else
+        echo "No IP address found"
+    fi
+
     echo ""
     read -rp "Press Enter to return to main menu..."
     main_menu
