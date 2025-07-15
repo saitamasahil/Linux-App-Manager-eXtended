@@ -204,7 +204,7 @@ check_internet() {
 
 show_help() {
     centered_heading "Help / About"
-    echo "Version: 1.5"
+    echo "Version: 1.6"
     echo "Author: saitamasahil"
     echo ""
     echo "Usage:"
@@ -398,7 +398,9 @@ dnf_manager() {
         echo " 6. Delete DNF Cache & Unnecessary Data"
         echo " 7. List All Groups"
         echo " 8. List Installed Groups"
-        echo " 9. Go Back To Main Menu"
+        echo " 9. Edit dnf.conf"
+        echo "10. Edit Repository Configuration"
+        echo "11. Go Back To Main Menu"
         echo ""
         read -p "Enter your choice: " choice
         case $choice in
@@ -452,7 +454,702 @@ dnf_manager() {
             read -rp "Press Enter to continue..."
             ;;
         9)
+            edit_dnf_conf
+            ;;
+        10)
+            edit_dnf_repo_manager
+            ;;
+        11)
             main_menu
+            return
+            ;;
+        *)
+            highlighted_warning "Invalid choice. Please try again."
+            sleep 2
+            ;;
+        esac
+    done
+}
+
+# Editor for dnf.conf
+edit_dnf_conf() {
+    local conf_file="/etc/dnf/dnf.conf"
+    if [ ! -f "$conf_file" ]; then
+        highlighted_warning "dnf.conf not found at $conf_file."
+        read -rp "Do you want to create a new dnf.conf file? (y/n): " create_choice
+        if [[ "$create_choice" =~ ^[Yy]$ ]]; then
+            echo -e "# see man dnf.conf for defaults and possible options\n[main]" | sudo tee "$conf_file" >/dev/null
+            highlighted_success "Created new dnf.conf at $conf_file."
+        else
+            read -rp "Press Enter to continue..."
+            return
+        fi
+    fi
+    # Declare dnf_desc outside the loop so it's always available
+    declare -A dnf_desc=(
+        [max_parallel_downloads]="Max simultaneous downloads."
+        [fastestmirror]="Use fastest mirror for downloads."
+        [allow_vendor_change]="Allow switching package vendor on upgrade/downgrade."
+        [assumeyes]="Auto-confirm all actions (no prompt)."
+        [best]="Always try to install the highest available version."
+        [keepcache]="Keep downloaded packages in cache."
+        [installonly_limit]="Number of installonly packages (like kernels) to keep."
+        [installonlypkgs]="Packages that are only installed, never upgraded."
+        [deltarpm]="Use delta RPMs to save bandwidth."
+        [obsoletes]="Enable obsoletes processing during install/update."
+        [metadata_timer_sync]="Time between metadata syncs (seconds)."
+        [metadata_expire]="How often repo metadata expires (seconds)."
+        [skip_if_unavailable]="Skip repos that can't be reached."
+        [clean_requirements_on_remove]="Remove unused dependencies when uninstalling."
+        [releasever]="OS release version for repo substitution."
+        [bandwidth]="Limit total download bandwidth."
+        [retries]="Number of download retries."
+        [gpgcheck]="Check GPG signatures on packages."
+        [sslverify]="Verify SSL certificates for repos."
+        [timeout]="Connection timeout (seconds)."
+        [proxy]="Proxy server URL."
+        [basearch]="Base architecture for packages."
+        [arch]="Architecture for packages."
+        [diskspacecheck]="Check disk space before installing."
+        [plugins]="Enable DNF plugins."
+        [enablegroups]="Enable package groups."
+        [install_weak_deps]="Install weak dependencies (recommended/supplemental)."
+        [exclude_from_weak]="Exclude packages from weak dependencies."
+        [installroot]="Root directory for package operations."
+        [logdir]="Directory for DNF logs."
+        [log_rotate]="Number of log rotations before removal."
+        [log_size]="Max log file size before rotation."
+        [persistdir]="Directory for persistent DNF data."
+        [protected_packages]="Packages never removed by DNF."
+        [tsflags]="Extra flags for RPM transactions."
+        [color]="Enable colored output (auto/never/always)."
+        [color_list_available_downgrade]="Color for available downgrades."
+        [color_list_available_install]="Color for available installs."
+        [color_list_available_reinstall]="Color for available reinstalls."
+        [color_list_available_upgrade]="Color for available upgrades."
+        [color_list_installed_extra]="Color for installed extras."
+        [color_list_installed_newer]="Color for installed newer packages."
+        [color_list_installed_older]="Color for installed older packages."
+        [color_list_installed_reinstall]="Color for installed reinstalls."
+        [color_search_match]="Color for search matches."
+        [color_update_installed]="Color for removed packages."
+        [color_update_local]="Color for local package installs."
+        [color_update_remote]="Color for remote package installs."
+    )
+    while true; do
+        centered_heading "Edit dnf.conf"
+        echo "Current settings:"
+        # Table header
+        printf "\033[1m%-30s %-3s %-40s\033[0m\n" "Setting" "-" "Description"
+        for key in "${!dnf_desc[@]}"; do
+            val=$(grep -E "^$key=" "$conf_file" | cut -d= -f2)
+            if [ -n "$val" ]; then
+                printf "%-30s %-3s %-40s\n" "$key=$val" "-" "${dnf_desc[$key]}"
+            fi
+        done
+        echo ""
+        echo "Select what to edit:"
+        echo " 1. Set max_parallel_downloads - Max simultaneous downloads."
+        echo " 2. Toggle fastestmirror (True/False) - Use fastest mirror for downloads."
+        echo " 3. Toggle allow_vendor_change (True/False) - Allow switching package vendor on upgrade/downgrade."
+        echo " 4. Toggle assumeyes (True/False) - Auto-confirm all actions (no prompt)."
+        echo " 5. Toggle best (True/False) - Always try to install the highest available version."
+        echo " 6. Toggle keepcache (True/False) - Keep downloaded packages in cache."
+        echo " 7. Set installonly_limit (number) - Number of installonly packages (like kernels) to keep."
+        echo " 8. Set installonlypkgs (comma-separated list) - Packages that are only installed, never upgraded."
+        echo " 9. Toggle deltarpm (True/False) - Use delta RPMs to save bandwidth."
+        echo "10. Toggle obsoletes (True/False) - Enable obsoletes processing during install/update."
+        echo "11. Set metadata_timer_sync (seconds) - Time between metadata syncs (seconds)."
+        echo "12. Set metadata_expire (seconds) - How often repo metadata expires (seconds)."
+        echo "13. Toggle skip_if_unavailable (True/False) - Skip repos that can't be reached."
+        echo "14. Toggle clean_requirements_on_remove (True/False) - Remove unused dependencies when uninstalling."
+        echo "15. Set releasever (string) - OS release version for repo substitution."
+        echo "16. Set bandwidth (integer or string with units) - Limit total download bandwidth."
+        echo "17. Set retries (integer) - Number of download retries."
+        echo "18. Toggle gpgcheck (True/False) - Check GPG signatures on packages."
+        echo "19. Toggle sslverify (True/False) - Verify SSL certificates for repos."
+        echo "20. Set timeout (integer seconds) - Connection timeout (seconds)."
+        echo "21. Set proxy (URL) - Proxy server URL."
+        echo "22. Set basearch (string) - Base architecture for packages."
+        echo "23. Set arch (string) - Architecture for packages."
+        echo "24. Toggle diskspacecheck (True/False) - Check disk space before installing."
+        echo "25. Toggle plugins (True/False) - Enable DNF plugins."
+        echo "26. Toggle enablegroups (True/False) - Enable package groups."
+        echo "27. Toggle install_weak_deps (True/False) - Install weak dependencies (recommended/supplemental)."
+        echo "28. Set exclude_from_weak (comma-separated list) - Exclude packages from weak dependencies."
+        echo "29. Set installroot (path) - Root directory for package operations."
+        echo "30. Set logdir (path) - Directory for DNF logs."
+        echo "31. Set log_rotate (integer) - Number of log rotations before removal."
+        echo "32. Set log_size (string, e.g. 1M) - Max log file size before rotation."
+        echo "33. Set persistdir (path) - Directory for persistent DNF data."
+        echo "34. Set protected_packages (comma-separated list) - Packages never removed by DNF."
+        echo "35. Set tsflags (comma-separated list) - Extra flags for RPM transactions."
+        echo "36. Set color (auto/never/always) - Enable colored output."
+        echo "37. Set color_list_available_downgrade (string) - Color for available downgrades."
+        echo "38. Set color_list_available_install (string) - Color for available installs."
+        echo "39. Set color_list_available_reinstall (string) - Color for available reinstalls."
+        echo "40. Set color_list_available_upgrade (string) - Color for available upgrades."
+        echo "41. Set color_list_installed_extra (string) - Color for installed extras."
+        echo "42. Set color_list_installed_newer (string) - Color for installed newer packages."
+        echo "43. Set color_list_installed_older (string) - Color for installed older packages."
+        echo "44. Set color_list_installed_reinstall (string) - Color for installed reinstalls."
+        echo "45. Set color_search_match (string) - Color for search matches."
+        echo "46. Set color_update_installed (string) - Color for removed packages."
+        echo "47. Set color_update_local (string) - Color for local package installs."
+        echo "48. Set color_update_remote (string) - Color for remote package installs."
+        echo "49. Go Back to DNF Manager"
+        echo ""
+        read -p "Enter your choice: " conf_choice
+        case $conf_choice in
+        1)
+            read -rp "Enter new value for max_parallel_downloads (e.g. 10): " mpd
+            if grep -q '^max_parallel_downloads' "$conf_file"; then
+                sudo sed -i "s/^max_parallel_downloads.*/max_parallel_downloads=$mpd/" "$conf_file"
+            else
+                echo "max_parallel_downloads=$mpd" | sudo tee -a "$conf_file" >/dev/null
+            fi
+            highlighted_success "max_parallel_downloads set to $mpd."
+            sleep 1
+            ;;
+        2)
+            current=$(grep '^fastestmirror' "$conf_file" | cut -d= -f2)
+            if [[ "$current" =~ [Tt]rue ]]; then
+                sudo sed -i "s/^fastestmirror=.*/fastestmirror=False/" "$conf_file"
+                highlighted_success "fastestmirror disabled."
+            else
+                if grep -q '^fastestmirror' "$conf_file"; then
+                    sudo sed -i "s/^fastestmirror=.*/fastestmirror=True/" "$conf_file"
+                else
+                    echo "fastestmirror=True" | sudo tee -a "$conf_file" >/dev/null
+                fi
+                highlighted_success "fastestmirror enabled."
+            fi
+            sleep 1
+            ;;
+        3)
+            read -rp "Set allow_vendor_change (True/False): " val
+            if grep -q '^allow_vendor_change' "$conf_file"; then
+                sudo sed -i "s/^allow_vendor_change.*/allow_vendor_change=$val/" "$conf_file"
+            else
+                echo "allow_vendor_change=$val" | sudo tee -a "$conf_file" >/dev/null
+            fi
+            highlighted_success "allow_vendor_change set to $val."
+            sleep 1
+            ;;
+        4)
+            read -rp "Set assumeyes (True/False): " val
+            if grep -q '^assumeyes' "$conf_file"; then
+                sudo sed -i "s/^assumeyes.*/assumeyes=$val/" "$conf_file"
+            else
+                echo "assumeyes=$val" | sudo tee -a "$conf_file" >/dev/null
+            fi
+            highlighted_success "assumeyes set to $val."
+            sleep 1
+            ;;
+        5)
+            read -rp "Set best (True/False): " val
+            if grep -q '^best' "$conf_file"; then
+                sudo sed -i "s/^best.*/best=$val/" "$conf_file"
+            else
+                echo "best=$val" | sudo tee -a "$conf_file" >/dev/null
+            fi
+            highlighted_success "best set to $val."
+            sleep 1
+            ;;
+        6)
+            read -rp "Set keepcache (True/False): " val
+            if grep -q '^keepcache' "$conf_file"; then
+                sudo sed -i "s/^keepcache.*/keepcache=$val/" "$conf_file"
+            else
+                echo "keepcache=$val" | sudo tee -a "$conf_file" >/dev/null
+            fi
+            highlighted_success "keepcache set to $val."
+            sleep 1
+            ;;
+        7)
+            read -rp "Set installonly_limit (number): " val
+            if grep -q '^installonly_limit' "$conf_file"; then
+                sudo sed -i "s/^installonly_limit.*/installonly_limit=$val/" "$conf_file"
+            else
+                echo "installonly_limit=$val" | sudo tee -a "$conf_file" >/dev/null
+            fi
+            highlighted_success "installonly_limit set to $val."
+            sleep 1
+            ;;
+        8)
+            read -rp "Set installonlypkgs (comma-separated list): " val
+            if grep -q '^installonlypkgs' "$conf_file"; then
+                sudo sed -i "s/^installonlypkgs.*/installonlypkgs=$val/" "$conf_file"
+            else
+                echo "installonlypkgs=$val" | sudo tee -a "$conf_file" >/dev/null
+            fi
+            highlighted_success "installonlypkgs set to $val."
+            sleep 1
+            ;;
+        9)
+            current=$(grep '^deltarpm' "$conf_file" | cut -d= -f2)
+            if [[ "$current" =~ [Tt]rue ]]; then
+                sudo sed -i "s/^deltarpm=.*/deltarpm=False/" "$conf_file"
+                highlighted_success "deltarpm disabled."
+            else
+                if grep -q '^deltarpm' "$conf_file"; then
+                    sudo sed -i "s/^deltarpm=.*/deltarpm=True/" "$conf_file"
+                else
+                    echo "deltarpm=True" | sudo tee -a "$conf_file" >/dev/null
+                fi
+                highlighted_success "deltarpm enabled."
+            fi
+            sleep 1
+            ;;
+        10)
+            current=$(grep '^obsoletes' "$conf_file" | cut -d= -f2)
+            if [[ "$current" =~ [Tt]rue ]]; then
+                sudo sed -i "s/^obsoletes=.*/obsoletes=False/" "$conf_file"
+                highlighted_success "obsoletes disabled."
+            else
+                if grep -q '^obsoletes' "$conf_file"; then
+                    sudo sed -i "s/^obsoletes=.*/obsoletes=True/" "$conf_file"
+                else
+                    echo "obsoletes=True" | sudo tee -a "$conf_file" >/dev/null
+                fi
+                highlighted_success "obsoletes enabled."
+            fi
+            sleep 1
+            ;;
+        11)
+            read -rp "Set metadata_timer_sync (seconds): " val
+            if grep -q '^metadata_timer_sync' "$conf_file"; then
+                sudo sed -i "s/^metadata_timer_sync.*/metadata_timer_sync=$val/" "$conf_file"
+            else
+                echo "metadata_timer_sync=$val" | sudo tee -a "$conf_file" >/dev/null
+            fi
+            highlighted_success "metadata_timer_sync set to $val."
+            sleep 1
+            ;;
+        12)
+            read -rp "Set metadata_expire (seconds): " val
+            if grep -q '^metadata_expire' "$conf_file"; then
+                sudo sed -i "s/^metadata_expire.*/metadata_expire=$val/" "$conf_file"
+            else
+                echo "metadata_expire=$val" | sudo tee -a "$conf_file" >/dev/null
+            fi
+            highlighted_success "metadata_expire set to $val."
+            sleep 1
+            ;;
+        13)
+            read -rp "Set skip_if_unavailable (True/False): " val
+            if grep -q '^skip_if_unavailable' "$conf_file"; then
+                sudo sed -i "s/^skip_if_unavailable.*/skip_if_unavailable=$val/" "$conf_file"
+            else
+                echo "skip_if_unavailable=$val" | sudo tee -a "$conf_file" >/dev/null
+            fi
+            highlighted_success "skip_if_unavailable set to $val."
+            sleep 1
+            ;;
+        14)
+            read -rp "Set clean_requirements_on_remove (True/False): " val
+            if grep -q '^clean_requirements_on_remove' "$conf_file"; then
+                sudo sed -i "s/^clean_requirements_on_remove.*/clean_requirements_on_remove=$val/" "$conf_file"
+            else
+                echo "clean_requirements_on_remove=$val" | sudo tee -a "$conf_file" >/dev/null
+            fi
+            highlighted_success "clean_requirements_on_remove set to $val."
+            sleep 1
+            ;;
+        15)
+            read -rp "Set releasever (string): " val
+            if grep -q '^releasever' "$conf_file"; then
+                sudo sed -i "s/^releasever.*/releasever=$val/" "$conf_file"
+            else
+                echo "releasever=$val" | sudo tee -a "$conf_file" >/dev/null
+            fi
+            highlighted_success "releasever set to $val."
+            sleep 1
+            ;;
+        16)
+            read -rp "Set bandwidth (integer or string with units): " val
+            if grep -q '^bandwidth' "$conf_file"; then
+                sudo sed -i "s/^bandwidth.*/bandwidth=$val/" "$conf_file"
+            else
+                echo "bandwidth=$val" | sudo tee -a "$conf_file" >/dev/null
+            fi
+            highlighted_success "bandwidth set to $val."
+            sleep 1
+            ;;
+        17)
+            read -rp "Set retries (integer): " val
+            if grep -q '^retries' "$conf_file"; then
+                sudo sed -i "s/^retries.*/retries=$val/" "$conf_file"
+            else
+                echo "retries=$val" | sudo tee -a "$conf_file" >/dev/null
+            fi
+            highlighted_success "retries set to $val."
+            sleep 1
+            ;;
+        18)
+            read -rp "Set gpgcheck (True/False): " val
+            if grep -q '^gpgcheck' "$conf_file"; then
+                sudo sed -i "s/^gpgcheck.*/gpgcheck=$val/" "$conf_file"
+            else
+                echo "gpgcheck=$val" | sudo tee -a "$conf_file" >/dev/null
+            fi
+            highlighted_success "gpgcheck set to $val."
+            sleep 1
+            ;;
+        19)
+            read -rp "Set sslverify (True/False): " val
+            if grep -q '^sslverify' "$conf_file"; then
+                sudo sed -i "s/^sslverify.*/sslverify=$val/" "$conf_file"
+            else
+                echo "sslverify=$val" | sudo tee -a "$conf_file" >/dev/null
+            fi
+            highlighted_success "sslverify set to $val."
+            sleep 1
+            ;;
+        20)
+            read -rp "Set timeout (integer seconds): " val
+            if grep -q '^timeout' "$conf_file"; then
+                sudo sed -i "s/^timeout.*/timeout=$val/" "$conf_file"
+            else
+                echo "timeout=$val" | sudo tee -a "$conf_file" >/dev/null
+            fi
+            highlighted_success "timeout set to $val."
+            sleep 1
+            ;;
+        21)
+            read -rp "Set proxy (URL): " val
+            if grep -q '^proxy' "$conf_file"; then
+                sudo sed -i "s/^proxy.*/proxy=$val/" "$conf_file"
+            else
+                echo "proxy=$val" | sudo tee -a "$conf_file" >/dev/null
+            fi
+            highlighted_success "proxy set to $val."
+            sleep 1
+            ;;
+        22)
+            read -rp "Set basearch (string): " val
+            if grep -q '^basearch' "$conf_file"; then
+                sudo sed -i "s/^basearch.*/basearch=$val/" "$conf_file"
+            else
+                echo "basearch=$val" | sudo tee -a "$conf_file" >/dev/null
+            fi
+            highlighted_success "basearch set to $val."
+            sleep 1
+            ;;
+        23)
+            read -rp "Set arch (string): " val
+            if grep -q '^arch' "$conf_file"; then
+                sudo sed -i "s/^arch.*/arch=$val/" "$conf_file"
+            else
+                echo "arch=$val" | sudo tee -a "$conf_file" >/dev/null
+            fi
+            highlighted_success "arch set to $val."
+            sleep 1
+            ;;
+        24)
+            read -rp "Set diskspacecheck (True/False): " val
+            if grep -q '^diskspacecheck' "$conf_file"; then
+                sudo sed -i "s/^diskspacecheck.*/diskspacecheck=$val/" "$conf_file"
+            else
+                echo "diskspacecheck=$val" | sudo tee -a "$conf_file" >/dev/null
+            fi
+            highlighted_success "diskspacecheck set to $val."
+            sleep 1
+            ;;
+        25)
+            read -rp "Set plugins (True/False): " val
+            if grep -q '^plugins' "$conf_file"; then
+                sudo sed -i "s/^plugins.*/plugins=$val/" "$conf_file"
+            else
+                echo "plugins=$val" | sudo tee -a "$conf_file" >/dev/null
+            fi
+            highlighted_success "plugins set to $val."
+            sleep 1
+            ;;
+        26)
+            read -rp "Set enablegroups (True/False): " val
+            if grep -q '^enablegroups' "$conf_file"; then
+                sudo sed -i "s/^enablegroups.*/enablegroups=$val/" "$conf_file"
+            else
+                echo "enablegroups=$val" | sudo tee -a "$conf_file" >/dev/null
+            fi
+            highlighted_success "enablegroups set to $val."
+            sleep 1
+            ;;
+        27)
+            read -rp "Set install_weak_deps (True/False): " val
+            if grep -q '^install_weak_deps' "$conf_file"; then
+                sudo sed -i "s/^install_weak_deps.*/install_weak_deps=$val/" "$conf_file"
+            else
+                echo "install_weak_deps=$val" | sudo tee -a "$conf_file" >/dev/null
+            fi
+            highlighted_success "install_weak_deps set to $val."
+            sleep 1
+            ;;
+        28)
+            read -rp "Set exclude_from_weak (comma-separated list): " val
+            if grep -q '^exclude_from_weak' "$conf_file"; then
+                sudo sed -i "s/^exclude_from_weak.*/exclude_from_weak=$val/" "$conf_file"
+            else
+                echo "exclude_from_weak=$val" | sudo tee -a "$conf_file" >/dev/null
+            fi
+            highlighted_success "exclude_from_weak set to $val."
+            sleep 1
+            ;;
+        29)
+            read -rp "Set installroot (path): " val
+            if grep -q '^installroot' "$conf_file"; then
+                sudo sed -i "s/^installroot.*/installroot=$val/" "$conf_file"
+            else
+                echo "installroot=$val" | sudo tee -a "$conf_file" >/dev/null
+            fi
+            highlighted_success "installroot set to $val."
+            sleep 1
+            ;;
+        30)
+            read -rp "Set logdir (path): " val
+            if grep -q '^logdir' "$conf_file"; then
+                sudo sed -i "s/^logdir.*/logdir=$val/" "$conf_file"
+            else
+                echo "logdir=$val" | sudo tee -a "$conf_file" >/dev/null
+            fi
+            highlighted_success "logdir set to $val."
+            sleep 1
+            ;;
+        31)
+            read -rp "Set log_rotate (integer): " val
+            if grep -q '^log_rotate' "$conf_file"; then
+                sudo sed -i "s/^log_rotate.*/log_rotate=$val/" "$conf_file"
+            else
+                echo "log_rotate=$val" | sudo tee -a "$conf_file" >/dev/null
+            fi
+            highlighted_success "log_rotate set to $val."
+            sleep 1
+            ;;
+        32)
+            read -rp "Set log_size (string, e.g. 1M): " val
+            if grep -q '^log_size' "$conf_file"; then
+                sudo sed -i "s/^log_size.*/log_size=$val/" "$conf_file"
+            else
+                echo "log_size=$val" | sudo tee -a "$conf_file" >/dev/null
+            fi
+            highlighted_success "log_size set to $val."
+            sleep 1
+            ;;
+        33)
+            read -rp "Set persistdir (path): " val
+            if grep -q '^persistdir' "$conf_file"; then
+                sudo sed -i "s/^persistdir.*/persistdir=$val/" "$conf_file"
+            else
+                echo "persistdir=$val" | sudo tee -a "$conf_file" >/dev/null
+            fi
+            highlighted_success "persistdir set to $val."
+            sleep 1
+            ;;
+        34)
+            read -rp "Set protected_packages (comma-separated list): " val
+            if grep -q '^protected_packages' "$conf_file"; then
+                sudo sed -i "s/^protected_packages.*/protected_packages=$val/" "$conf_file"
+            else
+                echo "protected_packages=$val" | sudo tee -a "$conf_file" >/dev/null
+            fi
+            highlighted_success "protected_packages set to $val."
+            sleep 1
+            ;;
+        35)
+            read -rp "Set tsflags (comma-separated list): " val
+            if grep -q '^tsflags' "$conf_file"; then
+                sudo sed -i "s/^tsflags.*/tsflags=$val/" "$conf_file"
+            else
+                echo "tsflags=$val" | sudo tee -a "$conf_file" >/dev/null
+            fi
+            highlighted_success "tsflags set to $val."
+            sleep 1
+            ;;
+        36)
+            read -rp "Set color (auto/never/always): " val
+            if grep -q '^color' "$conf_file"; then
+                sudo sed -i "s/^color.*/color=$val/" "$conf_file"
+            else
+                echo "color=$val" | sudo tee -a "$conf_file" >/dev/null
+            fi
+            highlighted_success "color set to $val."
+            sleep 1
+            ;;
+        37)
+            read -rp "Set color_list_available_downgrade (string): " val
+            if grep -q '^color_list_available_downgrade' "$conf_file"; then
+                sudo sed -i "s/^color_list_available_downgrade.*/color_list_available_downgrade=$val/" "$conf_file"
+            else
+                echo "color_list_available_downgrade=$val" | sudo tee -a "$conf_file" >/dev/null
+            fi
+            highlighted_success "color_list_available_downgrade set to $val."
+            sleep 1
+            ;;
+        38)
+            read -rp "Set color_list_available_install (string): " val
+            if grep -q '^color_list_available_install' "$conf_file"; then
+                sudo sed -i "s/^color_list_available_install.*/color_list_available_install=$val/" "$conf_file"
+            else
+                echo "color_list_available_install=$val" | sudo tee -a "$conf_file" >/dev/null
+            fi
+            highlighted_success "color_list_available_install set to $val."
+            sleep 1
+            ;;
+        39)
+            read -rp "Set color_list_available_reinstall (string): " val
+            if grep -q '^color_list_available_reinstall' "$conf_file"; then
+                sudo sed -i "s/^color_list_available_reinstall.*/color_list_available_reinstall=$val/" "$conf_file"
+            else
+                echo "color_list_available_reinstall=$val" | sudo tee -a "$conf_file" >/dev/null
+            fi
+            highlighted_success "color_list_available_reinstall set to $val."
+            sleep 1
+            ;;
+        40)
+            read -rp "Set color_list_available_upgrade (string): " val
+            if grep -q '^color_list_available_upgrade' "$conf_file"; then
+                sudo sed -i "s/^color_list_available_upgrade.*/color_list_available_upgrade=$val/" "$conf_file"
+            else
+                echo "color_list_available_upgrade=$val" | sudo tee -a "$conf_file" >/dev/null
+            fi
+            highlighted_success "color_list_available_upgrade set to $val."
+            sleep 1
+            ;;
+        41)
+            read -rp "Set color_list_installed_extra (string): " val
+            if grep -q '^color_list_installed_extra' "$conf_file"; then
+                sudo sed -i "s/^color_list_installed_extra.*/color_list_installed_extra=$val/" "$conf_file"
+            else
+                echo "color_list_installed_extra=$val" | sudo tee -a "$conf_file" >/dev/null
+            fi
+            highlighted_success "color_list_installed_extra set to $val."
+            sleep 1
+            ;;
+        42)
+            read -rp "Set color_list_installed_newer (string): " val
+            if grep -q '^color_list_installed_newer' "$conf_file"; then
+                sudo sed -i "s/^color_list_installed_newer.*/color_list_installed_newer=$val/" "$conf_file"
+            else
+                echo "color_list_installed_newer=$val" | sudo tee -a "$conf_file" >/dev/null
+            fi
+            highlighted_success "color_list_installed_newer set to $val."
+            sleep 1
+            ;;
+        43)
+            read -rp "Set color_list_installed_older (string): " val
+            if grep -q '^color_list_installed_older' "$conf_file"; then
+                sudo sed -i "s/^color_list_installed_older.*/color_list_installed_older=$val/" "$conf_file"
+            else
+                echo "color_list_installed_older=$val" | sudo tee -a "$conf_file" >/dev/null
+            fi
+            highlighted_success "color_list_installed_older set to $val."
+            sleep 1
+            ;;
+        44)
+            read -rp "Set color_list_installed_reinstall (string): " val
+            if grep -q '^color_list_installed_reinstall' "$conf_file"; then
+                sudo sed -i "s/^color_list_installed_reinstall.*/color_list_installed_reinstall=$val/" "$conf_file"
+            else
+                echo "color_list_installed_reinstall=$val" | sudo tee -a "$conf_file" >/dev/null
+            fi
+            highlighted_success "color_list_installed_reinstall set to $val."
+            sleep 1
+            ;;
+        45)
+            read -rp "Set color_search_match (string): " val
+            if grep -q '^color_search_match' "$conf_file"; then
+                sudo sed -i "s/^color_search_match.*/color_search_match=$val/" "$conf_file"
+            else
+                echo "color_search_match=$val" | sudo tee -a "$conf_file" >/dev/null
+            fi
+            highlighted_success "color_search_match set to $val."
+            sleep 1
+            ;;
+        46)
+            read -rp "Set color_update_installed (string): " val
+            if grep -q '^color_update_installed' "$conf_file"; then
+                sudo sed -i "s/^color_update_installed.*/color_update_installed=$val/" "$conf_file"
+            else
+                echo "color_update_installed=$val" | sudo tee -a "$conf_file" >/dev/null
+            fi
+            highlighted_success "color_update_installed set to $val."
+            sleep 1
+            ;;
+        47)
+            read -rp "Set color_update_local (string): " val
+            if grep -q '^color_update_local' "$conf_file"; then
+                sudo sed -i "s/^color_update_local.*/color_update_local=$val/" "$conf_file"
+            else
+                echo "color_update_local=$val" | sudo tee -a "$conf_file" >/dev/null
+            fi
+            highlighted_success "color_update_local set to $val."
+            sleep 1
+            ;;
+        48)
+            read -rp "Set color_update_remote (string): " val
+            if grep -q '^color_update_remote' "$conf_file"; then
+                sudo sed -i "s/^color_update_remote.*/color_update_remote=$val/" "$conf_file"
+            else
+                echo "color_update_remote=$val" | sudo tee -a "$conf_file" >/dev/null
+            fi
+            highlighted_success "color_update_remote set to $val."
+            sleep 1
+            ;;
+        49)
+            return
+            ;;
+        *)
+            highlighted_warning "Invalid choice. Please try again."
+            sleep 2
+            ;;
+        esac
+    done
+}
+
+# Editor for DNF repository files
+edit_dnf_repo_manager() {
+    local repo_dir="/etc/yum.repos.d"
+    local repo_files=("$repo_dir"/*.repo)
+    if [ ! -d "$repo_dir" ]; then
+        highlighted_warning "$repo_dir not found."
+        read -rp "Press Enter to continue..."
+        return
+    fi
+    while true; do
+        centered_heading "DNF Repository Manager"
+        echo "Available repo files:"
+        ls "$repo_dir"/*.repo 2>/dev/null || echo "No .repo files found."
+        echo ""
+        echo "Select an action:"
+        echo " 1. Edit a repo file"
+        echo " 2. Show contents of a repo file"
+        echo " 3. Go Back to DNF Manager"
+        echo ""
+        read -p "Enter your choice: " repo_choice
+        case $repo_choice in
+        1)
+            read -rp "Enter the full path or name of the repo file to edit: " file
+            if [ -f "$file" ]; then
+                sudo nano "$file"
+            elif [ -f "$repo_dir/$file" ]; then
+                sudo nano "$repo_dir/$file"
+            else
+                highlighted_warning "File not found."
+            fi
+            ;;
+        2)
+            read -rp "Enter the full path or name of the repo file to view: " file
+            if [ -f "$file" ]; then
+                cat "$file"
+            elif [ -f "$repo_dir/$file" ]; then
+                cat "$repo_dir/$file"
+            else
+                highlighted_warning "File not found."
+            fi
+            read -rp "Press Enter to continue..."
+            ;;
+        3)
             return
             ;;
         *)
@@ -559,7 +1256,7 @@ rpm_manager() {
             read -rp "Press Enter to continue..."
             ;;
         4)
-            read -rp "Enter the name of the RPM package to remove: " package_name
+            read -rp "Enter the name of the RPM package to uninstall: " package_name
             preview_and_confirm "rpm -q --whatrequires $package_name" "sudo rpm -e $package_name" "$package_name (RPM)"
             ;;
         5)
