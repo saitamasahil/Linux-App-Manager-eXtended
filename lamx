@@ -35,7 +35,7 @@ highlighted_success() {
     echo -e "\033[1;30;102m$1\033[0m"
 }
 
-LAMX_VERSION="1.7"
+LAMX_VERSION="1.8"
 
 # Main Menu - Entry point for the app
 main_menu() {
@@ -204,7 +204,7 @@ check_internet() {
 
 show_help() {
     centered_heading "Help / About"
-    echo "Version: 1.7"
+    echo "Version: 1.8"
     echo "Author: saitamasahil"
     echo ""
     echo "Usage:"
@@ -265,7 +265,8 @@ apt_manager() {
         echo " 5. Uninstall App"
         echo " 6. Delete APT Cache & Unnecessary Data"
         echo " 7. Edit apt.conf"
-        echo " 8. Go Back To Main Menu"
+        echo " 8. Edit Repository Configuration"
+        echo " 9. Go Back To Main Menu"
         echo ""
         read -p "Enter your choice: " choice
         case $choice in
@@ -307,7 +308,82 @@ apt_manager() {
             edit_apt_conf
             ;;
         8)
+            edit_apt_repo_manager
+            ;;
+        9)
             main_menu
+            return
+            ;;
+        *)
+            highlighted_warning "Invalid choice. Please try again."
+            sleep 2
+            ;;
+        esac
+    done
+}
+
+# Editor for APT repository files
+edit_apt_repo_manager() {
+    local sources_dir="/etc/apt/sources.list.d"
+    local sources_list="/etc/apt/sources.list"
+    while true; do
+        centered_heading "APT Repository Manager"
+        echo "Available repo files:"
+        ls $sources_dir/*.list 2>/dev/null || echo "No .list files found in $sources_dir."
+        echo "$sources_list (main sources list)"
+        echo ""
+        echo "Select an action:"
+        echo " 1. Edit a repo file"
+        echo " 2. Show contents of a repo file"
+        echo " 3. Add a new repository (.list file)"
+        echo " 4. Remove a repo file"
+        echo " 5. Go Back to APT Manager"
+        echo ""
+        read -p "Enter your choice: " repo_choice
+        case $repo_choice in
+        1)
+            read -rp "Enter the full path or name of the repo file to edit (or 'sources.list'): " file
+            if [ "$file" = "sources.list" ]; then
+                sudo nano "$sources_list"
+            elif [ -f "$file" ]; then
+                sudo nano "$file"
+            elif [ -f "$sources_dir/$file" ]; then
+                sudo nano "$sources_dir/$file"
+            else
+                highlighted_warning "File not found."
+            fi
+            ;;
+        2)
+            read -rp "Enter the full path or name of the repo file to view (or 'sources.list'): " file
+            if [ "$file" = "sources.list" ]; then
+                cat "$sources_list"
+            elif [ -f "$file" ]; then
+                cat "$file"
+            elif [ -f "$sources_dir/$file" ]; then
+                cat "$sources_dir/$file"
+            else
+                highlighted_warning "File not found."
+            fi
+            read -rp "Press Enter to continue..."
+            ;;
+        3)
+            read -rp "Enter a name for the new .list file (e.g. myrepo.list): " newfile
+            read -rp "Enter the deb line (e.g. deb http://repo.url distro component): " debline
+            echo "$debline" | sudo tee "$sources_dir/$newfile" >/dev/null
+            highlighted_success "Repository added to $sources_dir/$newfile."
+            sleep 1
+            ;;
+        4)
+            read -rp "Enter the name of the .list file to remove: " rmfile
+            if [ -f "$sources_dir/$rmfile" ]; then
+                sudo rm "$sources_dir/$rmfile"
+                highlighted_success "$rmfile removed."
+            else
+                highlighted_warning "File not found."
+            fi
+            sleep 1
+            ;;
+        5)
             return
             ;;
         *)
@@ -1128,7 +1204,9 @@ edit_dnf_repo_manager() {
         echo "Select an action:"
         echo " 1. Edit a repo file"
         echo " 2. Show contents of a repo file"
-        echo " 3. Go Back to DNF Manager"
+        echo " 3. Add a new repository (.repo file)"
+        echo " 4. Remove a repo file"
+        echo " 5. Go Back to DNF Manager"
         echo ""
         read -p "Enter your choice: " repo_choice
         case $repo_choice in
@@ -1154,6 +1232,23 @@ edit_dnf_repo_manager() {
             read -rp "Press Enter to continue..."
             ;;
         3)
+            read -rp "Enter a name for the new .repo file (e.g. myrepo.repo): " newfile
+            read -rp "Enter the repo content (e.g. [myrepo]\nname=My Repo\nbaseurl=http://repo.url\nenabled=1\ngpgcheck=1): " repocontent
+            echo -e "$repocontent" | sudo tee "$repo_dir/$newfile" >/dev/null
+            highlighted_success "Repository added to $repo_dir/$newfile."
+            sleep 1
+            ;;
+        4)
+            read -rp "Enter the name of the .repo file to remove: " rmfile
+            if [ -f "$repo_dir/$rmfile" ]; then
+                sudo rm "$repo_dir/$rmfile"
+                highlighted_success "$rmfile removed."
+            else
+                highlighted_warning "File not found."
+            fi
+            sleep 1
+            ;;
+        5)
             return
             ;;
         *)
