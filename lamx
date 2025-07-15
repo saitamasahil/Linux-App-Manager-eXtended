@@ -35,7 +35,7 @@ highlighted_success() {
     echo -e "\033[1;30;102m$1\033[0m"
 }
 
-LAMX_VERSION="1.5"
+LAMX_VERSION="1.6"
 
 # Main Menu - Entry point for the app
 main_menu() {
