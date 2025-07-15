@@ -35,7 +35,7 @@ highlighted_success() {
     echo -e "\033[1;30;102m$1\033[0m"
 }
 
-LAMX_VERSION="1.8"
+LAMX_VERSION="1.9"
 
 # Main Menu - Entry point for the app
 main_menu() {
@@ -204,7 +204,7 @@ check_internet() {
 
 show_help() {
     centered_heading "Help / About"
-    echo "Version: 1.8"
+    echo "Version: 1.9"
     echo "Author: saitamasahil"
     echo ""
     echo "Usage:"
@@ -411,7 +411,8 @@ pacman_manager() {
         echo " 4. Search & Install App"
         echo " 5. Uninstall App"
         echo " 6. Delete Pacman Cache & Unnecessary Data"
-        echo " 7. Go Back To Main Menu"
+        echo " 7. Edit pacman.conf"
+        echo " 8. Go Back To Main Menu"
         echo ""
         read -p "Enter your choice: " choice
         case $choice in
@@ -448,7 +449,116 @@ pacman_manager() {
             read -rp "Press Enter to continue..."
             ;;
         7)
+            edit_pacman_conf
+            ;;
+        8)
             main_menu
+            return
+            ;;
+        *)
+            highlighted_warning "Invalid choice. Please try again."
+            sleep 2
+            ;;
+        esac
+    done
+}
+
+# Pacman.conf Editor
+edit_pacman_conf() {
+    local conf_file="/etc/pacman.conf"
+    if [ ! -f "$conf_file" ]; then
+        highlighted_warning "pacman.conf not found at $conf_file."
+        read -rp "Press Enter to continue..."
+        return
+    fi
+    while true; do
+        centered_heading "Edit pacman.conf"
+        echo "Current settings:"
+        grep -E '^(RootDir|DBPath|CacheDir|HookDir|GPGDir|LogFile|HoldPkg|IgnorePkg|IgnoreGroup|Include|Architecture|XferCommand|NoUpgrade|NoExtract|CleanMethod|SigLevel|LocalFileSigLevel|RemoteFileSigLevel|ParallelDownloads|UseSyslog|Color|NoProgressBar|CheckSpace|VerbosePkgLists|DisableDownloadTimeout)' "$conf_file" | grep -v '^#'
+        echo ""
+        echo "Repository sections:"
+        grep -E '^\[.*\]' "$conf_file"
+        echo ""
+        echo "Select what to edit:"
+        echo " 1. Edit a config option (RootDir, DBPath, etc.)"
+        echo " 2. Add/Edit/Remove repository section"
+        echo " 3. View full pacman.conf"
+        echo " 4. Open pacman.conf in nano"
+        echo " 5. Go Back to Pacman Manager"
+        echo ""
+        read -p "Enter your choice: " conf_choice
+        case $conf_choice in
+        1)
+            echo "Available options: RootDir, DBPath, CacheDir, HookDir, GPGDir, LogFile, HoldPkg, IgnorePkg, IgnoreGroup, Include, Architecture, XferCommand, NoUpgrade, NoExtract, CleanMethod, SigLevel, LocalFileSigLevel, RemoteFileSigLevel, ParallelDownloads, UseSyslog, Color, NoProgressBar, CheckSpace, VerbosePkgLists, DisableDownloadTimeout"
+            read -rp "Enter the option name to edit: " opt
+            read -rp "Enter the new value: " val
+            if grep -q "^$opt" "$conf_file"; then
+                sudo sed -i "s|^$opt.*|$opt = $val|" "$conf_file"
+            else
+                echo "$opt = $val" | sudo tee -a "$conf_file" >/dev/null
+            fi
+            highlighted_success "$opt set to $val."
+            sleep 1
+            ;;
+        2)
+            echo "Repository sections found:"
+            grep -E '^\[.*\]' "$conf_file"
+            echo ""
+            echo "  a. Add new repository section"
+            echo "  b. Edit repository section"
+            echo "  c. Remove repository section"
+            read -rp "Choose action (a/b/c): " repo_action
+            case $repo_action in
+            a)
+                read -rp "Enter new section name (e.g. [custom]): " section
+                echo "$section" | sudo tee -a "$conf_file" >/dev/null
+                read -rp "Enter directives (e.g. Server = file:///home/pkgs): " directives
+                echo "$directives" | sudo tee -a "$conf_file" >/dev/null
+                highlighted_success "Repository section $section added."
+                sleep 1
+                ;;
+            b)
+                read -rp "Enter section name to edit (e.g. [custom]): " section
+                line=$(grep -n "^$section" "$conf_file" | cut -d: -f1)
+                if [ -n "$line" ]; then
+                    read -rp "Enter new directives for $section (will replace existing): " directives
+                    end=$(awk "NR>$line && /^\[/ {print NR; exit}" "$conf_file")
+                    if [ -z "$end" ]; then end=$(wc -l < "$conf_file"); fi
+                    sudo sed -i "$((line+1)),$((end-1))d" "$conf_file"
+                    echo "$directives" | sudo tee -a "$conf_file" >/dev/null
+                    highlighted_success "$section updated."
+                else
+                    highlighted_warning "Section not found."
+                fi
+                sleep 1
+                ;;
+            c)
+                read -rp "Enter section name to remove (e.g. [custom]): " section
+                line=$(grep -n "^$section" "$conf_file" | cut -d: -f1)
+                if [ -n "$line" ]; then
+                    end=$(awk "NR>$line && /^\[/ {print NR; exit}" "$conf_file")
+                    if [ -z "$end" ]; then end=$(wc -l < "$conf_file"); fi
+                    sudo sed -i "$line,$((end-1))d" "$conf_file"
+                    highlighted_success "$section removed."
+                else
+                    highlighted_warning "Section not found."
+                fi
+                sleep 1
+                ;;
+            *)
+                highlighted_warning "Invalid choice."
+                sleep 1
+                ;;
+            esac
+            ;;
+        3)
+            cat "$conf_file"
+            read -rp "Press Enter to continue..."
+            ;;
+        4)
+            sudo nano "$conf_file"
+            ;;
+        5)
             return
             ;;
         *)
