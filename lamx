@@ -35,7 +35,7 @@ highlighted_success() {
     echo -e "\033[1;30;102m$1\033[0m"
 }
 
-LAMX_VERSION="1.6"
+LAMX_VERSION="1.7"
 
 # Main Menu - Entry point for the app
 main_menu() {
@@ -204,7 +204,7 @@ check_internet() {
 
 show_help() {
     centered_heading "Help / About"
-    echo "Version: 1.6"
+    echo "Version: 1.7"
     echo "Author: saitamasahil"
     echo ""
     echo "Usage:"
@@ -264,7 +264,8 @@ apt_manager() {
         echo " 4. Search & Install App"
         echo " 5. Uninstall App"
         echo " 6. Delete APT Cache & Unnecessary Data"
-        echo " 7. Go Back To Main Menu"
+        echo " 7. Edit apt.conf"
+        echo " 8. Go Back To Main Menu"
         echo ""
         read -p "Enter your choice: " choice
         case $choice in
@@ -303,6 +304,9 @@ apt_manager() {
             read -rp "Press Enter to continue..."
             ;;
         7)
+            edit_apt_conf
+            ;;
+        8)
             main_menu
             return
             ;;
@@ -1959,6 +1963,225 @@ preview_and_confirm() {
         ;;
     esac
     read -rp "Press Enter to continue..."
+}
+
+# Editor for apt.conf
+edit_apt_conf() {
+    local conf_file="/etc/apt/apt.conf"
+    if [ ! -f "$conf_file" ]; then
+        highlighted_warning "apt.conf not found at $conf_file."
+        read -rp "Do you want to create a new apt.conf file? (y/n): " create_choice
+        if [[ "$create_choice" =~ ^[Yy]$ ]]; then
+            echo -e "// Main APT configuration file\n" | sudo tee "$conf_file" >/dev/null
+            highlighted_success "Created new apt.conf at $conf_file."
+        else
+            read -rp "Press Enter to continue..."
+            return
+        fi
+    fi
+    declare -A apt_desc=(
+        [APT::Get::Assume-Yes]="Auto-confirm all actions (no prompt)."
+        [APT::Get::Fix-Broken]="Try to fix broken dependencies automatically."
+        [APT::Get::Show-Upgraded]="Show upgraded packages in output."
+        [APT::Get::Show-Versions]="Show package versions in output."
+        [APT::Install-Recommends]="Install recommended packages by default."
+        [APT::Install-Suggests]="Install suggested packages by default."
+        [APT::Cache-Limit]="Maximum memory cache size (bytes)."
+        [APT::Default-Release]="Default release to install packages from."
+        [Acquire::Retries]="Number of download retries."
+        [Acquire::http::Timeout]="HTTP method timeout (seconds)."
+        [Acquire::http::Dl-Limit]="Limit HTTP download speed (KB/s)."
+        [Acquire::Languages]="Languages for package descriptions."
+        [Debug::pkgProblemResolver]="Enable debug output for dependency resolver."
+        [Debug::NoLocking]="Disable file locking (advanced/debug)."
+    )
+    while true; do
+        centered_heading "Edit apt.conf"
+        echo "Current settings:"
+        printf "\033[1m%-35s %-3s %-50s\033[0m\n" "Setting" "-" "Description"
+        for key in "${!apt_desc[@]}"; do
+            val=$(grep -E "^$key" "$conf_file" | awk -F'"' '{print $2}')
+            if [ -n "$val" ]; then
+                printf "%-35s %-3s %-50s\n" "$key=\"$val\";" "-" "${apt_desc[$key]}"
+            fi
+        done
+        echo ""
+        echo "Select what to edit:"
+        echo " 1. Toggle APT::Get::Assume-Yes - Auto-confirm all actions."
+        echo " 2. Toggle APT::Get::Fix-Broken - Fix broken dependencies automatically."
+        echo " 3. Toggle APT::Get::Show-Upgraded - Show upgraded packages."
+        echo " 4. Toggle APT::Get::Show-Versions - Show package versions."
+        echo " 5. Toggle APT::Install-Recommends - Install recommended packages."
+        echo " 6. Toggle APT::Install-Suggests - Install suggested packages."
+        echo " 7. Set APT::Cache-Limit (bytes) - Max memory cache size."
+        echo " 8. Set APT::Default-Release (string) - Default release."
+        echo " 9. Set Acquire::Retries (integer) - Download retries."
+        echo "10. Set Acquire::http::Timeout (seconds) - HTTP timeout."
+        echo "11. Set Acquire::http::Dl-Limit (KB/s) - HTTP download speed limit."
+        echo "12. Set Acquire::Languages (comma-separated) - Languages for descriptions."
+        echo "13. Toggle Debug::pkgProblemResolver - Debug dependency resolver."
+        echo "14. Toggle Debug::NoLocking - Disable file locking."
+        echo "15. Go Back to APT Manager"
+        echo ""
+        read -p "Enter your choice: " conf_choice
+        case $conf_choice in
+        1)
+            current=$(grep '^APT::Get::Assume-Yes' "$conf_file" | awk -F'"' '{print $2}')
+            if [[ "$current" == "true" ]]; then
+                sudo sed -i '/^APT::Get::Assume-Yes/d' "$conf_file"
+                highlighted_success "APT::Get::Assume-Yes disabled."
+            else
+                echo 'APT::Get::Assume-Yes "true";' | sudo tee -a "$conf_file" >/dev/null
+                highlighted_success "APT::Get::Assume-Yes enabled."
+            fi
+            sleep 1
+            ;;
+        2)
+            current=$(grep '^APT::Get::Fix-Broken' "$conf_file" | awk -F'"' '{print $2}')
+            if [[ "$current" == "true" ]]; then
+                sudo sed -i '/^APT::Get::Fix-Broken/d' "$conf_file"
+                highlighted_success "APT::Get::Fix-Broken disabled."
+            else
+                echo 'APT::Get::Fix-Broken "true";' | sudo tee -a "$conf_file" >/dev/null
+                highlighted_success "APT::Get::Fix-Broken enabled."
+            fi
+            sleep 1
+            ;;
+        3)
+            current=$(grep '^APT::Get::Show-Upgraded' "$conf_file" | awk -F'"' '{print $2}')
+            if [[ "$current" == "true" ]]; then
+                sudo sed -i '/^APT::Get::Show-Upgraded/d' "$conf_file"
+                highlighted_success "APT::Get::Show-Upgraded disabled."
+            else
+                echo 'APT::Get::Show-Upgraded "true";' | sudo tee -a "$conf_file" >/dev/null
+                highlighted_success "APT::Get::Show-Upgraded enabled."
+            fi
+            sleep 1
+            ;;
+        4)
+            current=$(grep '^APT::Get::Show-Versions' "$conf_file" | awk -F'"' '{print $2}')
+            if [[ "$current" == "true" ]]; then
+                sudo sed -i '/^APT::Get::Show-Versions/d' "$conf_file"
+                highlighted_success "APT::Get::Show-Versions disabled."
+            else
+                echo 'APT::Get::Show-Versions "true";' | sudo tee -a "$conf_file" >/dev/null
+                highlighted_success "APT::Get::Show-Versions enabled."
+            fi
+            sleep 1
+            ;;
+        5)
+            current=$(grep '^APT::Install-Recommends' "$conf_file" | awk -F'"' '{print $2}')
+            if [[ "$current" == "true" ]]; then
+                sudo sed -i '/^APT::Install-Recommends/d' "$conf_file"
+                highlighted_success "APT::Install-Recommends disabled."
+            else
+                echo 'APT::Install-Recommends "true";' | sudo tee -a "$conf_file" >/dev/null
+                highlighted_success "APT::Install-Recommends enabled."
+            fi
+            sleep 1
+            ;;
+        6)
+            current=$(grep '^APT::Install-Suggests' "$conf_file" | awk -F'"' '{print $2}')
+            if [[ "$current" == "true" ]]; then
+                sudo sed -i '/^APT::Install-Suggests/d' "$conf_file"
+                highlighted_success "APT::Install-Suggests disabled."
+            else
+                echo 'APT::Install-Suggests "true";' | sudo tee -a "$conf_file" >/dev/null
+                highlighted_success "APT::Install-Suggests enabled."
+            fi
+            sleep 1
+            ;;
+        7)
+            read -rp "Enter new value for APT::Cache-Limit (bytes, e.g. 20971520): " val
+            if grep -q '^APT::Cache-Limit' "$conf_file"; then
+                sudo sed -i "s/^APT::Cache-Limit.*/APT::Cache-Limit \"$val\";/" "$conf_file"
+            else
+                echo "APT::Cache-Limit \"$val\";" | sudo tee -a "$conf_file" >/dev/null
+            fi
+            highlighted_success "APT::Cache-Limit set to $val."
+            sleep 1
+            ;;
+        8)
+            read -rp "Enter new value for APT::Default-Release (e.g. stable): " val
+            if grep -q '^APT::Default-Release' "$conf_file"; then
+                sudo sed -i "s/^APT::Default-Release.*/APT::Default-Release \"$val\";/" "$conf_file"
+            else
+                echo "APT::Default-Release \"$val\";" | sudo tee -a "$conf_file" >/dev/null
+            fi
+            highlighted_success "APT::Default-Release set to $val."
+            sleep 1
+            ;;
+        9)
+            read -rp "Enter new value for Acquire::Retries (integer): " val
+            if grep -q '^Acquire::Retries' "$conf_file"; then
+                sudo sed -i "s/^Acquire::Retries.*/Acquire::Retries \"$val\";/" "$conf_file"
+            else
+                echo "Acquire::Retries \"$val\";" | sudo tee -a "$conf_file" >/dev/null
+            fi
+            highlighted_success "Acquire::Retries set to $val."
+            sleep 1
+            ;;
+        10)
+            read -rp "Enter new value for Acquire::http::Timeout (seconds): " val
+            if grep -q '^Acquire::http::Timeout' "$conf_file"; then
+                sudo sed -i "s/^Acquire::http::Timeout.*/Acquire::http::Timeout \"$val\";/" "$conf_file"
+            else
+                echo "Acquire::http::Timeout \"$val\";" | sudo tee -a "$conf_file" >/dev/null
+            fi
+            highlighted_success "Acquire::http::Timeout set to $val."
+            sleep 1
+            ;;
+        11)
+            read -rp "Enter new value for Acquire::http::Dl-Limit (KB/s): " val
+            if grep -q '^Acquire::http::Dl-Limit' "$conf_file"; then
+                sudo sed -i "s/^Acquire::http::Dl-Limit.*/Acquire::http::Dl-Limit \"$val\";/" "$conf_file"
+            else
+                echo "Acquire::http::Dl-Limit \"$val\";" | sudo tee -a "$conf_file" >/dev/null
+            fi
+            highlighted_success "Acquire::http::Dl-Limit set to $val."
+            sleep 1
+            ;;
+        12)
+            read -rp "Enter new value for Acquire::Languages (comma-separated, e.g. en,de): " val
+            if grep -q '^Acquire::Languages' "$conf_file"; then
+                sudo sed -i "s/^Acquire::Languages.*/Acquire::Languages \"$val\";/" "$conf_file"
+            else
+                echo "Acquire::Languages \"$val\";" | sudo tee -a "$conf_file" >/dev/null
+            fi
+            highlighted_success "Acquire::Languages set to $val."
+            sleep 1
+            ;;
+        13)
+            current=$(grep '^Debug::pkgProblemResolver' "$conf_file" | awk -F'"' '{print $2}')
+            if [[ "$current" == "true" ]]; then
+                sudo sed -i '/^Debug::pkgProblemResolver/d' "$conf_file"
+                highlighted_success "Debug::pkgProblemResolver disabled."
+            else
+                echo 'Debug::pkgProblemResolver "true";' | sudo tee -a "$conf_file" >/dev/null
+                highlighted_success "Debug::pkgProblemResolver enabled."
+            fi
+            sleep 1
+            ;;
+        14)
+            current=$(grep '^Debug::NoLocking' "$conf_file" | awk -F'"' '{print $2}')
+            if [[ "$current" == "true" ]]; then
+                sudo sed -i '/^Debug::NoLocking/d' "$conf_file"
+                highlighted_success "Debug::NoLocking disabled."
+            else
+                echo 'Debug::NoLocking "true";' | sudo tee -a "$conf_file" >/dev/null
+                highlighted_success "Debug::NoLocking enabled."
+            fi
+            sleep 1
+            ;;
+        15)
+            return
+            ;;
+        *)
+            highlighted_warning "Invalid choice. Please try again."
+            sleep 2
+            ;;
+        esac
+    done
 }
 
 # Start the app
