@@ -150,7 +150,7 @@ lamx_install_menu() {
             else
                 if [ -s "$tmpfile" ]; then
                     sudo cp "$tmpfile" /usr/local/bin/lamx && sudo chmod +x /usr/local/bin/lamx
-                    highlighted_success "LAMX updated successfully to version $remote_version!"
+                    highlighted_success "LAMX updated successfully to version $remote_version! Please restart the program to apply the changes."
                 else
                     highlighted_warning "Failed to download the latest LAMX binary."
                 fi
