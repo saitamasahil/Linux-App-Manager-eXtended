@@ -35,7 +35,7 @@ highlighted_success() {
     echo -e "\033[1;30;102m$1\033[0m"
 }
 
-LAMX_VERSION="2.1"
+LAMX_VERSION="2.2"
 
 # Main Menu - Entry point for the app
 main_menu() {
@@ -204,7 +204,7 @@ check_internet() {
 
 show_help() {
     centered_heading "Help / About"
-    echo "Version: 2.1"
+    echo "Version: 2.2"
     echo "Author: saitamasahil"
     echo ""
     echo "Usage:"
@@ -295,7 +295,8 @@ apt_manager() {
             ;;
         5)
             read -rp "Enter the app name to uninstall: " app_name
-            preview_and_confirm "apt -s remove $app_name" "sudo apt remove $app_name" "$app_name (APT)"
+            sudo apt remove "$app_name"
+            read -rp "Press Enter to continue..."
             ;;
         6)
             echo "Deleting APT Cache & Unnecessary Data..."
@@ -440,7 +441,8 @@ pacman_manager() {
             ;;
         5)
             read -rp "Enter the app name to uninstall: " app_name
-            preview_and_confirm "pacman -p -R $app_name" "sudo pacman -R $app_name" "$app_name (Pacman)"
+            sudo pacman -R "$app_name"
+            read -rp "Press Enter to continue..."
             ;;
         6)
             echo "Deleting Pacman Cache & Unnecessary Data..."
@@ -618,7 +620,8 @@ dnf_manager() {
             ;;
         5)
             read -rp "Enter the app name to uninstall: " app_name
-            preview_and_confirm "dnf repoquery --whatrequires $app_name" "sudo dnf remove $app_name" "$app_name (DNF)"
+            sudo dnf remove "$app_name"
+            read -rp "Press Enter to continue..."
             ;;
         6)
             echo "Deleting DNF Cache & Unnecessary Data..."
@@ -629,7 +632,7 @@ dnf_manager() {
         7)
             echo "Listing All Groups:"
             dnf group list --hidden
-            read -rp "Do you want to install any group from the list? (Y/n): " choice2
+            read -rp "Do you want to install any group from the list? (y/n): " choice2
             if [[ $choice2 == "Y" || $choice2 == "y" ]]; then
                 read -rp "Enter the name of the group you want to install: " group_name
                 sudo dnf group install "$group_name" -y
@@ -1466,7 +1469,8 @@ rpm_manager() {
             ;;
         4)
             read -rp "Enter the name of the RPM package to uninstall: " package_name
-            preview_and_confirm "rpm -q --whatrequires $package_name" "sudo rpm -e $package_name" "$package_name (RPM)"
+            sudo rpm -e "$package_name"
+            read -rp "Press Enter to continue..."
             ;;
         5)
             main_menu
