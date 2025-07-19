@@ -35,7 +35,7 @@ highlighted_success() {
     echo -e "\033[1;30;102m$1\033[0m"
 }
 
-LAMX_VERSION="2.0"
+LAMX_VERSION="2.1"
 
 # Main Menu - Entry point for the app
 main_menu() {
@@ -204,7 +204,7 @@ check_internet() {
 
 show_help() {
     centered_heading "Help / About"
-    echo "Version: 2.0"
+    echo "Version: 2.1"
     echo "Author: saitamasahil"
     echo ""
     echo "Usage:"
@@ -1675,21 +1675,70 @@ flatpak_manager() {
         read -p "Enter your choice: " choice
         case $choice in
         1)
-            # Check/install flatpak when user chooses option 1
-            if ! command -v flatpak &>/dev/null; then
+            # Install/uninstall prompt for flatpak
+            if command -v flatpak >/dev/null; then
+                # Flatpak is installed, offer uninstall
+                echo "Flatpak is already installed."
+                read -rp "Do you want to uninstall flatpak including all flatpak apps? (y/n): " uninstall_choice
+                case $uninstall_choice in
+                    [yY]*)
+                        echo "Uninstalling flatpak..."
+                        flatpak uninstall --unused
+                        flatpak uninstall --all
+                        if command -v apt >/dev/null; then
+                            sudo apt remove --purge flatpak -y
+                        elif command -v dnf >/dev/null; then
+                            sudo dnf remove flatpak -y
+                        elif command -v yum >/dev/null; then
+                            sudo yum remove flatpak -y
+                        elif command -v zypper >/dev/null; then
+                            sudo zypper remove flatpak
+                        elif command -v pacman >/dev/null; then
+                            sudo pacman -R flatpak
+                        else
+                            highlighted_warning "Sorry, I don't know how to uninstall flatpak on your system."
+                        fi
+                        ;;
+                    [nN]*)
+                        echo "OK, keeping flatpak."
+                        ;;
+                    *)
+                        highlighted_warning "Invalid input. Please enter y or n."
+                        ;;
+                esac
+            else
+                # Flatpak is not installed, offer install
                 highlighted_warning "Flatpak is not available on this system!"
                 read -rp "Do you want to install flatpak? (y/n): " install_choice
                 case $install_choice in
                     [yY]*)
-                        setup_flatpak
+                        echo "Installing flatpak..."
+                        if command -v apt >/dev/null; then
+                            sudo apt update && sudo apt install flatpak -y
+                        elif command -v dnf >/dev/null; then
+                            sudo dnf install flatpak -y
+                        elif command -v yum >/dev/null; then
+                            sudo yum install epel-release -y && sudo yum install flatpak -y
+                        elif command -v zypper >/dev/null; then
+                            sudo zypper install flatpak
+                        elif command -v pacman >/dev/null; then
+                            sudo pacman -S flatpak
+                        else
+                            highlighted_warning "Sorry, I don't know how to install flatpak on your system."
+                        fi
+                        echo "Adding flathub repo..."
+                        flatpak remote-add --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
+                        echo "NOTE: To complete the installation, restart your machine."
                         ;;
-                    *)
+                    [nN]*)
                         echo "OK, not installing flatpak."
                         ;;
+                    *)
+                        highlighted_warning "Invalid input. Please enter y or n."
+                        ;;
                 esac
-            else
-                setup_flatpak
             fi
+            read -rp "Press Enter to continue..."
             ;;
         2)
             flatpak remote-add --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
@@ -1751,68 +1800,7 @@ flatpak_manager() {
 }
 
 setup_flatpak() {
-    echo ""
-    if command -v flatpak >/dev/null; then
-        echo "Flatpak is already installed."
-        read -rp "Do you want to uninstall flatpak including all flatpak apps? (y/n): " choice
-        case $choice in
-        [yY]*)
-            echo "Uninstalling flatpak..."
-            flatpak uninstall --unused
-            flatpak uninstall --all
-            if command -v apt >/dev/null; then
-                sudo apt remove --purge flatpak -y
-            elif command -v dnf >/dev/null; then
-                sudo dnf remove flatpak -y
-            elif command -v yum >/dev/null; then
-                sudo yum remove flatpak -y
-            elif command -v zypper >/dev/null; then
-                sudo zypper remove flatpak
-            elif command -v pacman >/dev/null; then
-                sudo pacman -R flatpak
-            else
-                highlighted_warning "Sorry, I don't know how to uninstall flatpak on your system."
-            fi
-            ;;
-        [nN]*)
-            echo "OK, keeping flatpak."
-            ;;
-        *)
-            highlighted_warning "Invalid input. Please enter y or n."
-            ;;
-        esac
-    else
-        echo "Flatpak is not installed."
-        read -rp "Do you want to install flatpak? (y/n): " choice
-        case $choice in
-        [yY]*)
-            echo "Installing flatpak..."
-            if command -v apt >/dev/null; then
-                sudo apt update && sudo apt install flatpak -y
-            elif command -v dnf >/dev/null; then
-                sudo dnf install flatpak -y
-            elif command -v yum >/dev/null; then
-                sudo yum install epel-release -y && sudo yum install flatpak -y
-            elif command -v zypper >/dev/null; then
-                sudo zypper install flatpak
-            elif command -v pacman >/dev/null; then
-                sudo pacman -S flatpak
-            else
-                highlighted_warning "Sorry, I don't know how to install flatpak on your system."
-            fi
-            echo "Adding flathub repo..."
-            flatpak remote-add --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
-            echo "NOTE: To complete the installation, restart your machine."
-            ;;
-        [nN]*)
-            echo "OK, not installing flatpak."
-            ;;
-        *)
-            highlighted_warning "Invalid input. Please enter y or n."
-            ;;
-        esac
-    fi
-    read -rp "Press Enter to continue..."
+    :
 }
 
 manage_flatpak_permissions() {
