@@ -35,7 +35,7 @@ highlighted_success() {
     echo -e "\033[1;30;102m$1\033[0m"
 }
 
-LAMX_VERSION="1.9"
+LAMX_VERSION="2.0"
 
 # Main Menu - Entry point for the app
 main_menu() {
@@ -204,7 +204,7 @@ check_internet() {
 
 show_help() {
     centered_heading "Help / About"
-    echo "Version: 1.9"
+    echo "Version: 2.0"
     echo "Author: saitamasahil"
     echo ""
     echo "Usage:"
@@ -1674,7 +1674,23 @@ flatpak_manager() {
         echo ""
         read -p "Enter your choice: " choice
         case $choice in
-        1) setup_flatpak ;;
+        1)
+            # Check/install flatpak when user chooses option 1
+            if ! command -v flatpak &>/dev/null; then
+                highlighted_warning "Flatpak is not available on this system!"
+                read -rp "Do you want to install flatpak? (y/n): " install_choice
+                case $install_choice in
+                    [yY]*)
+                        setup_flatpak
+                        ;;
+                    *)
+                        echo "OK, not installing flatpak."
+                        ;;
+                esac
+            else
+                setup_flatpak
+            fi
+            ;;
         2)
             flatpak remote-add --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
             echo "Flathub repo added successfully."
