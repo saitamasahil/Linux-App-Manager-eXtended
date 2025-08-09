@@ -10,13 +10,16 @@ centered_heading() {
     t1="$1"
     local len=${#t1}
     local border_len=$((len + 4))
-    local cols=$(tput cols)
+    local cols
+    cols=$(tput cols)
     local pad=$(((cols - border_len - 2) / 2))
     local padstr=""
     if [ $pad -gt 0 ]; then padstr=$(printf '%*s' $pad); fi
-    local top_line="╔$(printf '%0.s═' $(seq 1 $border_len))╗"
+    local top_line
+    top_line="╔$(printf '%0.s═' $(seq 1 $border_len))╗"
     local mid_line="║  $t1  ║"
-    local bot_line="╚$(printf '%0.s═' $(seq 1 $border_len))╝"
+    local bot_line
+    bot_line="╚$(printf '%0.s═' $(seq 1 $border_len))╝"
     echo -e "\033[1m$padstr$top_line\033[0m"
     echo -e "\033[1m$padstr$mid_line\033[0m"
     echo -e "\033[1m$padstr$bot_line\033[0m"
@@ -179,7 +182,7 @@ show_system_info() {
     echo "CPU: $(lscpu | grep 'Model name' | awk -F: '{print $2}' | xargs)"
     echo "RAM: $(free -h | awk '/Mem:/ {print $2" total, "$3" used, "$4" free"}')"
     echo "Disk: $(df -h / | awk 'NR==2{print $2" total, "$3" used, "$4" free"}')"
-    set -- $(hostname -I)
+    set -- "$(hostname -I)"
     if [ -n "$1" ]; then
         echo "IP: $1"
     else
@@ -447,7 +450,7 @@ pacman_manager() {
         6)
             echo "Deleting Pacman Cache & Unnecessary Data..."
             sudo pacman -Sc --noconfirm
-            sudo pacman -Rns --noconfirm $(pacman -Qtdq 2>/dev/null)
+            sudo pacman -Rns --noconfirm "$(pacman -Qtdq 2>/dev/null)"
             read -rp "Press Enter to continue..."
             ;;
         7)
@@ -525,8 +528,8 @@ edit_pacman_conf() {
                 if [ -n "$line" ]; then
                     read -rp "Enter new directives for $section (will replace existing): " directives
                     end=$(awk "NR>$line && /^\[/ {print NR; exit}" "$conf_file")
-                    if [ -z "$end" ]; then end=$(wc -l < "$conf_file"); fi
-                    sudo sed -i "$((line+1)),$((end-1))d" "$conf_file"
+                    if [ -z "$end" ]; then end=$(wc -l <"$conf_file"); fi
+                    sudo sed -i "$((line + 1)),$((end - 1))d" "$conf_file"
                     echo "$directives" | sudo tee -a "$conf_file" >/dev/null
                     highlighted_success "$section updated."
                 else
@@ -539,8 +542,8 @@ edit_pacman_conf() {
                 line=$(grep -n "^$section" "$conf_file" | cut -d: -f1)
                 if [ -n "$line" ]; then
                     end=$(awk "NR>$line && /^\[/ {print NR; exit}" "$conf_file")
-                    if [ -z "$end" ]; then end=$(wc -l < "$conf_file"); fi
-                    sudo sed -i "$line,$((end-1))d" "$conf_file"
+                    if [ -z "$end" ]; then end=$(wc -l <"$conf_file"); fi
+                    sudo sed -i "$line,$((end - 1))d" "$conf_file"
                     highlighted_success "$section removed."
                 else
                     highlighted_warning "Section not found."
@@ -1303,7 +1306,6 @@ edit_dnf_conf() {
 # Editor for DNF repository files
 edit_dnf_repo_manager() {
     local repo_dir="/etc/yum.repos.d"
-    local repo_files=("$repo_dir"/*.repo)
     if [ ! -d "$repo_dir" ]; then
         highlighted_warning "$repo_dir not found."
         read -rp "Press Enter to continue..."
@@ -1596,7 +1598,7 @@ setup_snap() {
             elif command -v pacman >/dev/null; then
                 sudo pacman -S --needed base-devel git
                 git clone https://aur.archlinux.org/snapd.git
-                cd snapd
+                cd snapd || return
                 makepkg -si
                 sudo systemctl enable --now snapd.socket
                 sudo ln -s /var/lib/snapd/snap /snap
@@ -1626,17 +1628,17 @@ manage_snap_permissions() {
     snap list | grep -v "^core"
     read -rp "Enter the name of the app you want to manage: " app
     if snap list | grep -q "^$app"; then
-        snap connections $app
+        snap connections "$app"
         read -rp "Enter the name of the interface you want to manage: " interface
-        if snap connections $app | grep -q "$interface"; then
+        if snap connections "$app" | grep -q "$interface"; then
             read -rp "Choose an action: connect, disconnect, or cancel: " action
             case $action in
             connect)
-                snap connect $app:$interface
+                snap connect "$app":"$interface"
                 echo "$app is connected to $interface."
                 ;;
             disconnect)
-                snap disconnect $app:$interface
+                snap disconnect "$app":"$interface"
                 echo "$app is disconnected from $interface."
                 ;;
             cancel)
@@ -1685,61 +1687,61 @@ flatpak_manager() {
                 echo "Flatpak is already installed."
                 read -rp "Do you want to uninstall flatpak including all flatpak apps? (y/n): " uninstall_choice
                 case $uninstall_choice in
-                    [yY]*)
-                        echo "Uninstalling flatpak..."
-                        flatpak uninstall --unused
-                        flatpak uninstall --all
-                        if command -v apt >/dev/null; then
-                            sudo apt remove --purge flatpak -y
-                        elif command -v dnf >/dev/null; then
-                            sudo dnf remove flatpak -y
-                        elif command -v yum >/dev/null; then
-                            sudo yum remove flatpak -y
-                        elif command -v zypper >/dev/null; then
-                            sudo zypper remove flatpak
-                        elif command -v pacman >/dev/null; then
-                            sudo pacman -R flatpak
-                        else
-                            highlighted_warning "Sorry, I don't know how to uninstall flatpak on your system."
-                        fi
-                        ;;
-                    [nN]*)
-                        echo "OK, keeping flatpak."
-                        ;;
-                    *)
-                        highlighted_warning "Invalid input. Please enter y or n."
-                        ;;
+                [yY]*)
+                    echo "Uninstalling flatpak..."
+                    flatpak uninstall --unused
+                    flatpak uninstall --all
+                    if command -v apt >/dev/null; then
+                        sudo apt remove --purge flatpak -y
+                    elif command -v dnf >/dev/null; then
+                        sudo dnf remove flatpak -y
+                    elif command -v yum >/dev/null; then
+                        sudo yum remove flatpak -y
+                    elif command -v zypper >/dev/null; then
+                        sudo zypper remove flatpak
+                    elif command -v pacman >/dev/null; then
+                        sudo pacman -R flatpak
+                    else
+                        highlighted_warning "Sorry, I don't know how to uninstall flatpak on your system."
+                    fi
+                    ;;
+                [nN]*)
+                    echo "OK, keeping flatpak."
+                    ;;
+                *)
+                    highlighted_warning "Invalid input. Please enter y or n."
+                    ;;
                 esac
             else
                 # Flatpak is not installed, offer install
                 highlighted_warning "Flatpak is not available on this system!"
                 read -rp "Do you want to install flatpak? (y/n): " install_choice
                 case $install_choice in
-                    [yY]*)
-                        echo "Installing flatpak..."
-                        if command -v apt >/dev/null; then
-                            sudo apt update && sudo apt install flatpak -y
-                        elif command -v dnf >/dev/null; then
-                            sudo dnf install flatpak -y
-                        elif command -v yum >/dev/null; then
-                            sudo yum install epel-release -y && sudo yum install flatpak -y
-                        elif command -v zypper >/dev/null; then
-                            sudo zypper install flatpak
-                        elif command -v pacman >/dev/null; then
-                            sudo pacman -S flatpak
-                        else
-                            highlighted_warning "Sorry, I don't know how to install flatpak on your system."
-                        fi
-                        echo "Adding flathub repo..."
-                        flatpak remote-add --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
-                        echo "NOTE: To complete the installation, restart your machine."
-                        ;;
-                    [nN]*)
-                        echo "OK, not installing flatpak."
-                        ;;
-                    *)
-                        highlighted_warning "Invalid input. Please enter y or n."
-                        ;;
+                [yY]*)
+                    echo "Installing flatpak..."
+                    if command -v apt >/dev/null; then
+                        sudo apt update && sudo apt install flatpak -y
+                    elif command -v dnf >/dev/null; then
+                        sudo dnf install flatpak -y
+                    elif command -v yum >/dev/null; then
+                        sudo yum install epel-release -y && sudo yum install flatpak -y
+                    elif command -v zypper >/dev/null; then
+                        sudo zypper install flatpak
+                    elif command -v pacman >/dev/null; then
+                        sudo pacman -S flatpak
+                    else
+                        highlighted_warning "Sorry, I don't know how to install flatpak on your system."
+                    fi
+                    echo "Adding flathub repo..."
+                    flatpak remote-add --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
+                    echo "NOTE: To complete the installation, restart your machine."
+                    ;;
+                [nN]*)
+                    echo "OK, not installing flatpak."
+                    ;;
+                *)
+                    highlighted_warning "Invalid input. Please enter y or n."
+                    ;;
                 esac
             fi
             read -rp "Press Enter to continue..."
@@ -1938,7 +1940,7 @@ nvidia_manager() {
     install_drivers_debian() {
         echo "Installing NVIDIA drivers on Debian-based system..."
         sudo apt update
-        sudo apt install -y dkms build-essential linux-headers-$(uname -r)
+        sudo apt install -y dkms build-essential "linux-headers-$(uname -r)"
         sudo apt install -y nvidia-driver
         echo "NVIDIA drivers installed on Debian-based system."
         highlighted_success "NVIDIA drivers installation complete."
@@ -1966,7 +1968,8 @@ nvidia_manager() {
         echo "Installing NVIDIA drivers on SUSE-based system..."
         sudo zypper refresh
         sudo zypper install -y dkms kernel-default-devel gcc
-        sudo zypper addrepo --refresh https://download.nvidia.com/opensuse/leap/$releasever NVIDIA
+        releasever=$(lsb_release -rs 2>/dev/null || echo "15.4")
+        sudo zypper addrepo --refresh https://download.nvidia.com/opensuse/leap/"$releasever" NVIDIA
         sudo zypper install -y x11-video-nvidiaG05
         echo "NVIDIA drivers installed on SUSE-based system."
         highlighted_success "NVIDIA drivers installation complete."
@@ -2193,20 +2196,20 @@ edit_apt_conf() {
         fi
     fi
     declare -A apt_desc=(
-        [APT::Get::Assume-Yes]="Auto-confirm all actions (no prompt)."
-        [APT::Get::Fix-Broken]="Try to fix broken dependencies automatically."
-        [APT::Get::Show-Upgraded]="Show upgraded packages in output."
-        [APT::Get::Show-Versions]="Show package versions in output."
-        [APT::Install-Recommends]="Install recommended packages by default."
-        [APT::Install-Suggests]="Install suggested packages by default."
-        [APT::Cache-Limit]="Maximum memory cache size (bytes)."
-        [APT::Default-Release]="Default release to install packages from."
-        [Acquire::Retries]="Number of download retries."
-        [Acquire::http::Timeout]="HTTP method timeout (seconds)."
-        [Acquire::http::Dl-Limit]="Limit HTTP download speed (KB/s)."
-        [Acquire::Languages]="Languages for package descriptions."
-        [Debug::pkgProblemResolver]="Enable debug output for dependency resolver."
-        [Debug::NoLocking]="Disable file locking (advanced/debug)."
+        ["APT::Get::Assume-Yes"]="Auto-confirm all actions (no prompt)."
+        ["APT::Get::Fix-Broken"]="Try to fix broken dependencies automatically."
+        ["APT::Get::Show-Upgraded"]="Show upgraded packages in output."
+        ["APT::Get::Show-Versions"]="Show package versions in output."
+        ["APT::Install-Recommends"]="Install recommended packages by default."
+        ["APT::Install-Suggests"]="Install suggested packages by default."
+        ["APT::Cache-Limit"]="Maximum memory cache size (bytes)."
+        ["APT::Default-Release"]="Default release to install packages from."
+        ["Acquire::Retries"]="Number of download retries."
+        ["Acquire::http::Timeout"]="HTTP method timeout (seconds)."
+        ["Acquire::http::Dl-Limit"]="Limit HTTP download speed (KB/s)."
+        ["Acquire::Languages"]="Languages for package descriptions."
+        ["Debug::pkgProblemResolver"]="Enable debug output for dependency resolver."
+        ["Debug::NoLocking"]="Disable file locking (advanced/debug)."
     )
     while true; do
         centered_heading "Edit apt.conf"
