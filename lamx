@@ -38,7 +38,7 @@ highlighted_success() {
     echo -e "\033[1;30;102m$1\033[0m"
 }
 
-LAMX_VERSION="2.2"
+LAMX_VERSION="2.3"
 
 # Main Menu - Entry point for the app
 main_menu() {
@@ -207,7 +207,7 @@ check_internet() {
 
 show_help() {
     centered_heading "Help / About"
-    echo "Version: 2.2"
+    echo "Version: 2.3"
     echo "Author: saitamasahil"
     echo ""
     echo "Usage:"
