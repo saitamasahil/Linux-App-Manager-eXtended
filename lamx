@@ -1667,7 +1667,7 @@ flatpak_manager() {
         centered_heading "Flatpak App Manager"
         echo "Select Your Choice:"
         echo " 1. Flatpak Installer/Uninstaller"
-        echo " 2. Add FlatHub Repository"
+        echo " 2. Manage Repositories"
         echo " 3. List All Apps Including Runtimes"
         echo " 4. List User Installed Apps"
         echo " 5. Update All Apps"
@@ -1747,9 +1747,7 @@ flatpak_manager() {
             read -rp "Press Enter to continue..."
             ;;
         2)
-            flatpak remote-add --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
-            echo "Flathub repo added successfully."
-            read -rp "Press Enter to continue..."
+            manage_flatpak_repos
             ;;
         3)
             echo "Listing All Apps Including Runtimes:"
@@ -1807,6 +1805,96 @@ flatpak_manager() {
 
 setup_flatpak() {
     :
+}
+
+manage_flatpak_repos() {
+    while true; do
+        centered_heading "Flatpak Repository Manager"
+        echo "Available repositories:"
+        flatpak remotes
+        echo ""
+        echo "Select an action:"
+        echo " 1. List repositories"
+        echo " 2. Add Flathub repository"
+        echo " 3. Add custom repository"
+        echo " 4. Remove repository"
+        echo " 5. Enable repository"
+        echo " 6. Disable repository"
+        echo " 7. Go back"
+        echo ""
+        read -p "Enter your choice: " choice
+        case $choice in
+        1)
+            echo "Detailed repository information:"
+            flatpak remotes --show-details
+            read -rp "Press Enter to continue..."
+            ;;
+        2)
+            flatpak remote-add --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
+            echo "Flathub repo added successfully."
+            read -rp "Press Enter to continue..."
+            ;;
+        3)
+            read -rp "Enter repository name: " repo_name
+            read -rp "Enter repository URL (.flatpakrepo file): " repo_url
+            if flatpak remote-add --if-not-exists "$repo_name" "$repo_url"; then
+                highlighted_success "Repository $repo_name added successfully."
+            else
+                highlighted_warning "Failed to add repository."
+            fi
+            read -rp "Press Enter to continue..."
+            ;;
+        4)
+            echo "Available repositories:"
+            flatpak remotes
+            read -rp "Enter repository name to remove: " repo_name
+            if [ "$repo_name" = "flathub" ]; then
+                highlighted_warning "Warning: Are you sure you want to remove the Flathub repository? (y/n): "
+                read -r confirm
+                if [[ ! "$confirm" =~ ^[Yy]$ ]]; then
+                    echo "Operation cancelled."
+                    read -rp "Press Enter to continue..."
+                    continue
+                fi
+            fi
+            if flatpak remote-delete "$repo_name"; then
+                highlighted_success "Repository $repo_name removed successfully."
+            else
+                highlighted_warning "Failed to remove repository."
+            fi
+            read -rp "Press Enter to continue..."
+            ;;
+        5)
+            echo "Available repositories:"
+            flatpak remotes
+            read -rp "Enter repository name to enable: " repo_name
+            if flatpak remote-modify "$repo_name" --enable; then
+                highlighted_success "Repository $repo_name enabled successfully."
+            else
+                highlighted_warning "Failed to enable repository."
+            fi
+            read -rp "Press Enter to continue..."
+            ;;
+        6)
+            echo "Available repositories:"
+            flatpak remotes
+            read -rp "Enter repository name to disable: " repo_name
+            if flatpak remote-modify "$repo_name" --disable; then
+                highlighted_success "Repository $repo_name disabled successfully."
+            else
+                highlighted_warning "Failed to disable repository."
+            fi
+            read -rp "Press Enter to continue..."
+            ;;
+        7)
+            return
+            ;;
+        *)
+            highlighted_warning "Invalid choice. Please try again."
+            sleep 2
+            ;;
+        esac
+    done
 }
 
 manage_flatpak_permissions() {
