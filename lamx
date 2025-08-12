@@ -46,7 +46,6 @@ main_menu() {
     echo "Select Your Choice:"
     local menu_items=()
     local menu_funcs=()
-    local idx=1
     if command -v apt &>/dev/null; then
         menu_items+=("APT App Manager")
         menu_funcs+=("apt_manager")
@@ -97,12 +96,12 @@ main_menu() {
     menu_funcs+=("exit 0")
 
     for i in "${!menu_items[@]}"; do
-        printf " %2d. %s\n" $((i+1)) "${menu_items[$i]}"
+        printf " %2d. %s\n" $((i + 1)) "${menu_items[$i]}"
     done
     echo ""
     read -p "Enter your choice: " choice
     if [[ "$choice" =~ ^[0-9]+$ ]] && [ "$choice" -ge 1 ] && [ "$choice" -le ${#menu_items[@]} ]; then
-        func="${menu_funcs[$((choice-1))]}"
+        func="${menu_funcs[$((choice - 1))]}"
         if [ "$func" = "exit 0" ]; then
             exit 0
         else
