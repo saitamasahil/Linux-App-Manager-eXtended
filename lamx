@@ -65,27 +65,27 @@ main_menu() {
     case $choice in
     1) if command -v apt &>/dev/null; then apt_manager; else
         highlighted_warning "APT is not available on this system!"
-        sleep 2
+        sleep 1
         main_menu
     fi ;;
     2) if command -v pacman &>/dev/null; then pacman_manager; else
         highlighted_warning "Pacman is not available on this system!"
-        sleep 2
+        sleep 1
         main_menu
     fi ;;
     3) if command -v dnf &>/dev/null; then dnf_manager; else
         highlighted_warning "DNF is not available on this system!"
-        sleep 2
+        sleep 1
         main_menu
     fi ;;
     4) if command -v dpkg &>/dev/null; then deb_manager; elif command -v apt &>/dev/null; then deb_manager; else
         highlighted_warning "DEB (dpkg/apt) is not available on this system!"
-        sleep 2
+        sleep 1
         main_menu
     fi ;;
     5) if command -v rpm &>/dev/null; then rpm_manager; elif command -v dnf &>/dev/null; then rpm_manager; else
         highlighted_warning "RPM (rpm/dnf) is not available on this system!"
-        sleep 2
+        sleep 1
         main_menu
     fi ;;
     6) snap_manager ;;
@@ -101,7 +101,7 @@ main_menu() {
     16) exit 0 ;;
     *)
         highlighted_warning "Invalid choice. Please try again."
-        sleep 2
+        sleep 1
         main_menu
         ;;
     esac
@@ -167,7 +167,7 @@ lamx_install_menu() {
             ;;
         *)
             highlighted_warning "Invalid choice. Please try again."
-            sleep 2
+            sleep 1
             ;;
         esac
     done
@@ -320,7 +320,7 @@ apt_manager() {
             ;;
         *)
             highlighted_warning "Invalid choice. Please try again."
-            sleep 2
+            sleep 1
             ;;
         esac
     done
@@ -392,7 +392,7 @@ edit_apt_repo_manager() {
             ;;
         *)
             highlighted_warning "Invalid choice. Please try again."
-            sleep 2
+            sleep 1
             ;;
         esac
     done
@@ -462,7 +462,7 @@ pacman_manager() {
             ;;
         *)
             highlighted_warning "Invalid choice. Please try again."
-            sleep 2
+            sleep 1
             ;;
         esac
     done
@@ -568,7 +568,7 @@ edit_pacman_conf() {
             ;;
         *)
             highlighted_warning "Invalid choice. Please try again."
-            sleep 2
+            sleep 1
             ;;
         esac
     done
@@ -661,7 +661,7 @@ dnf_manager() {
             ;;
         *)
             highlighted_warning "Invalid choice. Please try again."
-            sleep 2
+            sleep 1
             ;;
         esac
     done
@@ -1297,7 +1297,7 @@ edit_dnf_conf() {
             ;;
         *)
             highlighted_warning "Invalid choice. Please try again."
-            sleep 2
+            sleep 1
             ;;
         esac
     done
@@ -1368,7 +1368,7 @@ edit_dnf_repo_manager() {
             ;;
         *)
             highlighted_warning "Invalid choice. Please try again."
-            sleep 2
+            sleep 1
             ;;
         esac
     done
@@ -1424,7 +1424,7 @@ deb_manager() {
             ;;
         *)
             highlighted_warning "Invalid choice. Please try again."
-            sleep 2
+            sleep 1
             ;;
         esac
     done
@@ -1480,7 +1480,7 @@ rpm_manager() {
             ;;
         *)
             highlighted_warning "Invalid choice. Please try again."
-            sleep 2
+            sleep 1
             ;;
         esac
     done
@@ -1544,7 +1544,7 @@ snap_manager() {
             ;;
         *)
             highlighted_warning "Invalid choice. Please try again."
-            sleep 2
+            sleep 1
             ;;
         esac
     done
@@ -1797,7 +1797,7 @@ flatpak_manager() {
             ;;
         *)
             highlighted_warning "Invalid choice. Please try again."
-            sleep 2
+            sleep 1
             ;;
         esac
     done
@@ -1891,7 +1891,7 @@ manage_flatpak_repos() {
             ;;
         *)
             highlighted_warning "Invalid choice. Please try again."
-            sleep 2
+            sleep 1
             ;;
         esac
     done
@@ -1907,7 +1907,7 @@ manage_flatpak_permissions() {
     fi
     echo "Launching Flatseal..."
     flatpak run com.github.tchx84.Flatseal &
-    sleep 3
+    sleep 1
     echo "Waiting for Flatseal to close..."
     wait
     echo "Flatseal has closed."
@@ -1999,7 +1999,7 @@ firmware_manager() {
             ;;
         *)
             highlighted_warning "Invalid choice. Please try again."
-            sleep 2
+            sleep 1
             ;;
         esac
     done
@@ -2017,11 +2017,11 @@ nvidia_manager() {
         lspci | grep -i nvidia >/dev/null 2>&1
         if [ $? -eq 0 ]; then
             echo "NVIDIA GPU detected."
-            sleep 2
+            sleep 1
             return 0
         else
             highlighted_warning "No NVIDIA GPU detected."
-            sleep 2
+            sleep 1
             return 1
         fi
     }
@@ -2106,7 +2106,7 @@ nvidia_manager() {
             ;;
         *)
             highlighted_warning "Invalid choice. Please try again."
-            sleep 2
+            sleep 1
             ;;
         esac
     done
@@ -2202,7 +2202,7 @@ tuned_manager() {
             ;;
         *)
             highlighted_warning "Invalid choice. Please try again."
-            sleep 2
+            sleep 1
             ;;
         esac
     done
@@ -2482,7 +2482,7 @@ edit_apt_conf() {
             ;;
         *)
             highlighted_warning "Invalid choice. Please try again."
-            sleep 2
+            sleep 1
             ;;
         esac
     done
