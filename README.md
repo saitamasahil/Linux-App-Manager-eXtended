@@ -30,6 +30,7 @@ LAMX is a powerful, interactive Bash script that helps you manage Linux applicat
 
 ## Main Features
 
+- Dynamic menu: only shows options for package managers and system tools detected on your system.
 - Manage apps using APT, Pacman, DNF, DEB, RPM, Snap, and Flatpak.
 - Update all packages across supported managers with one command.
 - Manage firmware updates and NVIDIA drivers.
@@ -40,9 +41,10 @@ LAMX is a powerful, interactive Bash script that helps you manage Linux applicat
 
 - Start LAMX with `./lamx`.
 - Type the number of the menu option you want and press Enter.
-- For installing, uninstalling, or updating LAMX itself, use option 15 in the main menu.
+- For installing, uninstalling, or updating LAMX itself, use the LAMX System Management option in the main menu.
+- You can only use the uninstall and update options after installing LAMX systemwide.
 - After installing systemwide, you can simply type `lamx` in any terminal to start the app.
-- For help or more information, use option 14.
+- For help or more information, use the Help/About option in the menu.
 
 ## Notes
 

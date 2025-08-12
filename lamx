@@ -38,73 +38,81 @@ highlighted_success() {
     echo -e "\033[1;30;102m$1\033[0m"
 }
 
-LAMX_VERSION="2.4"
+LAMX_VERSION="2.5"
 
 # Main Menu - Entry point for the app
 main_menu() {
     centered_heading "Linux App Manager eXtended"
     echo "Select Your Choice:"
-    echo " 1. APT App Manager"
-    echo " 2. Pacman App Manager"
-    echo " 3. DNF App Manager"
-    echo " 4. DEB App Manager"
-    echo " 5. RPM App Manager"
-    echo " 6. Snap App Manager"
-    echo " 7. Flatpak App Manager"
-    echo " 8. Firmware Manager"
-    echo " 9. NVIDIA Driver Manager"
-    echo "10. Tuned Power Profile Manager"
-    echo "11. Update All Packages In Your System"
-    echo "12. Show System Info"
-    echo "13. Check for Internet Connection"
-    echo "14. Help/About"
-    echo "15. LAMX System Management (Install/Uninstall/Update)"
-    echo "16. Exit Program"
+    local menu_items=()
+    local menu_funcs=()
+    local idx=1
+    if command -v apt &>/dev/null; then
+        menu_items+=("APT App Manager")
+        menu_funcs+=("apt_manager")
+    fi
+    if command -v pacman &>/dev/null; then
+        menu_items+=("Pacman App Manager")
+        menu_funcs+=("pacman_manager")
+    fi
+    if command -v dnf &>/dev/null; then
+        menu_items+=("DNF App Manager")
+        menu_funcs+=("dnf_manager")
+    fi
+    if command -v dpkg &>/dev/null || command -v apt &>/dev/null; then
+        menu_items+=("DEB App Manager")
+        menu_funcs+=("deb_manager")
+    fi
+    if command -v rpm &>/dev/null || command -v dnf &>/dev/null; then
+        menu_items+=("RPM App Manager")
+        menu_funcs+=("rpm_manager")
+    fi
+    # Snap and Flatpak always visible
+    menu_items+=("Snap App Manager")
+    menu_funcs+=("snap_manager")
+    menu_items+=("Flatpak App Manager")
+    menu_funcs+=("flatpak_manager")
+    # Firmware only if available
+    if command -v fwupdmgr &>/dev/null; then
+        menu_items+=("Firmware Manager")
+        menu_funcs+=("firmware_manager")
+    fi
+    # NVIDIA always visible
+    menu_items+=("NVIDIA Driver Manager")
+    menu_funcs+=("nvidia_manager")
+    # Tuned always visible
+    menu_items+=("Tuned Power Profile Manager")
+    menu_funcs+=("tuned_manager")
+    menu_items+=("Update All Packages In Your System")
+    menu_funcs+=("update_all_packages")
+    menu_items+=("Show System Info")
+    menu_funcs+=("show_system_info")
+    menu_items+=("Check for Internet Connection")
+    menu_funcs+=("check_internet")
+    menu_items+=("Help/About")
+    menu_funcs+=("show_help")
+    menu_items+=("LAMX System Management (Install/Uninstall/Update)")
+    menu_funcs+=("lamx_install_menu")
+    menu_items+=("Exit Program")
+    menu_funcs+=("exit 0")
+
+    for i in "${!menu_items[@]}"; do
+        printf " %2d. %s\n" $((i+1)) "${menu_items[$i]}"
+    done
     echo ""
     read -p "Enter your choice: " choice
-    case $choice in
-    1) if command -v apt &>/dev/null; then apt_manager; else
-        highlighted_warning "APT is not available on this system!"
-        sleep 1
-        main_menu
-    fi ;;
-    2) if command -v pacman &>/dev/null; then pacman_manager; else
-        highlighted_warning "Pacman is not available on this system!"
-        sleep 1
-        main_menu
-    fi ;;
-    3) if command -v dnf &>/dev/null; then dnf_manager; else
-        highlighted_warning "DNF is not available on this system!"
-        sleep 1
-        main_menu
-    fi ;;
-    4) if command -v dpkg &>/dev/null; then deb_manager; elif command -v apt &>/dev/null; then deb_manager; else
-        highlighted_warning "DEB (dpkg/apt) is not available on this system!"
-        sleep 1
-        main_menu
-    fi ;;
-    5) if command -v rpm &>/dev/null; then rpm_manager; elif command -v dnf &>/dev/null; then rpm_manager; else
-        highlighted_warning "RPM (rpm/dnf) is not available on this system!"
-        sleep 1
-        main_menu
-    fi ;;
-    6) snap_manager ;;
-    7) flatpak_manager ;;
-    8) firmware_manager ;;
-    9) nvidia_manager ;;
-    10) tuned_manager ;;
-    11) update_all_packages ;;
-    12) show_system_info ;;
-    13) check_internet ;;
-    14) show_help ;;
-    15) lamx_install_menu ;;
-    16) exit 0 ;;
-    *)
+    if [[ "$choice" =~ ^[0-9]+$ ]] && [ "$choice" -ge 1 ] && [ "$choice" -le ${#menu_items[@]} ]; then
+        func="${menu_funcs[$((choice-1))]}"
+        if [ "$func" = "exit 0" ]; then
+            exit 0
+        else
+            $func
+        fi
+    else
         highlighted_warning "Invalid choice. Please try again."
         sleep 1
         main_menu
-        ;;
-    esac
+    fi
 }
 
 lamx_install_menu() {
@@ -207,32 +215,24 @@ check_internet() {
 
 show_help() {
     centered_heading "Help / About"
-    echo "Version: 2.4"
+    echo "Version: 2.5"
     echo "Author: saitamasahil"
     echo ""
     echo "Usage:"
-    echo "  Run it directly: ./lamx"
-    echo "  To install, uninstall, or update LAMX systemwide, use option 15 in the main menu."
+    echo "- Start LAMX with ./lamx."
+    echo "- Type the number of the menu option you want and press Enter."
+    echo "- For installing, uninstalling, or updating LAMX itself, use the LAMX System Management option in the main menu."
+    echo "- You can only use the uninstall and update options after installing LAMX systemwide."
+    echo "- After installing systemwide, you can simply type lamx in any terminal to start the app."
     echo ""
     echo "Main Menu Options Explained:"
-    echo " 1. APT App Manager         - Manage apps, config, cache, and repos using APT (Debian/Ubuntu)."
-    echo " 2. Pacman App Manager      - Manage apps, config, cache, and repos using Pacman (Arch Linux)."
-    echo " 3. DNF App Manager         - Manage apps, config, cache, groups, and repos using DNF (Fedora/RHEL)."
-    echo " 4. DEB App Manager         - Install, remove, and search .deb packages directly."
-    echo " 5. RPM App Manager         - Install, remove, and search .rpm packages directly."
-    echo " 6. Snap App Manager        - Manage Snap apps, permissions, and core components."
-    echo " 7. Flatpak App Manager     - Manage Flatpak apps, permissions, and repositories."
-    echo " 8. Firmware Manager        - Update and manage system firmware (fwupd)."
-    echo " 9. NVIDIA Driver Manager   - Detect, install, or uninstall NVIDIA GPU drivers."
-    echo "10. Tuned Power Profile     - Manage system power and performance profiles."
-    echo "11. Update All Packages     - Update all supported and available package managers at once."
-    echo "12. Show System Info        - Display system, hardware, and network information."
-    echo "13. Check Internet          - Test if your system is online."
-    echo "14. Help/About              - Show this help screen."
-    echo "15. LAMX System Management  - Install, uninstall, or update LAMX itself."
-    echo "16. Exit Program            - Quit LAMX."
+    echo "- The main menu shows only the package managers and tools available on your system."
+    echo "- For example, on Fedora you will see DNF and RPM, but not APT or Pacman."
+    echo "- Each option lets you manage apps, configuration, cache, repositories, and more for the detected package manager."
+    echo "- Other options include firmware management, NVIDIA drivers, power profiles, system info, internet check, and LAMX management."
     echo ""
     echo "Features:"
+    echo "- Dynamic menu: only shows options for package managers and system tools detected on your system."
     echo "- Manage apps using APT, Pacman, DNF, DEB, RPM, Snap, and Flatpak."
     echo "- Update all packages across supported managers with one command."
     echo "- Manage firmware updates and NVIDIA drivers."
@@ -243,7 +243,7 @@ show_help() {
     echo "- Type the number to select menu options."
     echo "- For uninstall/cleanup, you'll see a preview and be asked to confirm."
     echo "- For help, rerun this menu."
-    echo "- Use option 15 to install, uninstall, or update LAMX systemwide."
+    echo "- Use the LAMX System Management option to install, uninstall, or update LAMX systemwide."
     echo ""
     read -rp "Press Enter to return to main menu..."
     main_menu
@@ -251,12 +251,6 @@ show_help() {
 
 # APT App Manager
 apt_manager() {
-    if ! command -v apt &>/dev/null; then
-        highlighted_warning "APT is not available on this system!"
-        read -rp "Press Enter to return to main menu..."
-        main_menu
-        return
-    fi
     while true; do
         centered_heading "APT App Manager"
         echo "Select Your Choice:"
@@ -399,12 +393,6 @@ edit_apt_repo_manager() {
 
 # Pacman App Manager
 pacman_manager() {
-    if ! command -v pacman &>/dev/null; then
-        highlighted_warning "Pacman is not available on this system!"
-        read -rp "Press Enter to return to main menu..."
-        main_menu
-        return
-    fi
     while true; do
         centered_heading "Pacman App Manager"
         echo "Select Your Choice:"
@@ -575,12 +563,6 @@ edit_pacman_conf() {
 
 # DNF App Manager
 dnf_manager() {
-    if ! command -v dnf &>/dev/null; then
-        highlighted_warning "DNF is not available on this system!"
-        read -rp "Press Enter to return to main menu..."
-        main_menu
-        return
-    fi
     while true; do
         centered_heading "DNF App Manager"
         echo "Select Your Choice:"
@@ -1375,12 +1357,6 @@ edit_dnf_repo_manager() {
 
 # DEB App Manager
 deb_manager() {
-    if ! command -v dpkg &>/dev/null; then
-        highlighted_warning "dpkg (DEB) is not available on this system!"
-        read -rp "Press Enter to return to main menu..."
-        main_menu
-        return
-    fi
     while true; do
         centered_heading "DEB App Manager"
         echo "Select Your Choice:"
@@ -1393,28 +1369,23 @@ deb_manager() {
         read -p "Enter your choice: " choice
         case $choice in
         1)
-            echo "Listing All Installed DEB Packages:"
+            echo "Listing All Apps:"
             dpkg -l
             read -rp "Press Enter to continue..."
             ;;
         2)
-            read -rp "Enter the name or keyword of the DEB package to search: " keyword
-            dpkg -l | grep "$keyword"
+            read -rp "Enter the app name to search: " app_name
+            dpkg -l | grep "$app_name"
             read -rp "Press Enter to continue..."
             ;;
         3)
-            read -rp "Enter the local path or URL of the DEB file: " file_path
-            if [[ $file_path == http* ]]; then
-                wget "$file_path"
-                file_name=${file_path##*/}
-                sudo dpkg -i "$file_name"
-                rm "$file_name"
-            else sudo dpkg -i "$file_path"; fi
+            read -rp "Enter the path to the DEB package: " deb_path
+            sudo dpkg -i "$deb_path"
             read -rp "Press Enter to continue..."
             ;;
         4)
-            read -rp "Enter the name of the DEB package to remove: " package_name
-            sudo dpkg -r "$package_name"
+            read -rp "Enter the app name to uninstall: " app_name
+            sudo dpkg --remove "$app_name"
             read -rp "Press Enter to continue..."
             ;;
         5)
@@ -1431,12 +1402,6 @@ deb_manager() {
 
 # RPM App Manager
 rpm_manager() {
-    if ! command -v rpm &>/dev/null; then
-        highlighted_warning "RPM is not available on this system!"
-        read -rp "Press Enter to return to main menu..."
-        main_menu
-        return
-    fi
     while true; do
         centered_heading "RPM App Manager"
         echo "Select Your Choice:"
@@ -1449,28 +1414,23 @@ rpm_manager() {
         read -p "Enter your choice: " choice
         case $choice in
         1)
-            echo "Listing All Installed RPM Packages:"
+            echo "Listing All Apps:"
             rpm -qa
             read -rp "Press Enter to continue..."
             ;;
         2)
-            read -rp "Enter the name or keyword of the RPM package to search: " keyword
-            rpm -qa | grep "$keyword"
+            read -rp "Enter the app name to search: " app_name
+            rpm -qa | grep "$app_name"
             read -rp "Press Enter to continue..."
             ;;
         3)
-            read -rp "Enter the local path or URL of the RPM file: " file_path
-            if [[ $file_path == http* ]]; then
-                wget "$file_path"
-                file_name=${file_path##*/}
-                sudo rpm -i "$file_name"
-                rm "$file_name"
-            else sudo rpm -i "$file_path"; fi
+            read -rp "Enter the path to the RPM package: " rpm_path
+            sudo rpm -i "$rpm_path"
             read -rp "Press Enter to continue..."
             ;;
         4)
-            read -rp "Enter the name of the RPM package to uninstall: " package_name
-            sudo rpm -e "$package_name"
+            read -rp "Enter the app name to uninstall: " app_name
+            sudo rpm -e "$app_name"
             read -rp "Press Enter to continue..."
             ;;
         5)
@@ -2212,34 +2172,19 @@ update_all_packages() {
     echo ""
     # Update all supported package managers, with clear feedback for each
     if command -v apt &>/dev/null; then
-        highlighted_success "apt is available, updating packages..."
         sudo apt update && sudo apt full-upgrade -y
-    else
-        highlighted_warning "apt is not available, skipping..."
     fi
     if command -v pacman &>/dev/null; then
-        highlighted_success "pacman is available, updating packages..."
         sudo pacman -Syu --noconfirm
-    else
-        highlighted_warning "pacman is not available, skipping..."
     fi
     if command -v dnf &>/dev/null; then
-        highlighted_success "dnf is available, updating packages..."
         sudo dnf upgrade --refresh
-    else
-        highlighted_warning "dnf is not available, skipping..."
     fi
     if command -v snap &>/dev/null; then
-        highlighted_success "snap is installed, updating packages..."
         sudo snap refresh
-    else
-        highlighted_warning "snap is not installed, skipping..."
     fi
     if command -v flatpak &>/dev/null; then
-        highlighted_success "flatpak is installed, updating packages..."
         flatpak update -y
-    else
-        highlighted_warning "flatpak is not installed, skipping..."
     fi
     highlighted_success "All done!"
     read -rp "Press Enter to continue..."
