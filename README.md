@@ -25,7 +25,6 @@ LAMX is a powerful, interactive Bash script that helps you manage Linux applicat
    - To install LAMX systemwide, launch the script and select option `15` from the main menu:  
      `LAMX System Management (Install/Uninstall/Update)`
    - Follow the prompts to install, uninstall, or update LAMX.
-   - Note: You can only use the uninstall and update options after installing LAMX systemwide.
    - After installing systemwide, you can simply type `lamx` in any terminal to start the app.
 
 ## Main Features
@@ -42,7 +41,6 @@ LAMX is a powerful, interactive Bash script that helps you manage Linux applicat
 - Start LAMX with `./lamx`.
 - Type the number of the menu option you want and press Enter.
 - For installing, uninstalling, or updating LAMX itself, use the LAMX System Management option in the main menu.
-- You can only use the uninstall and update options after installing LAMX systemwide.
 - After installing systemwide, you can simply type `lamx` in any terminal to start the app.
 - For help or more information, use the Help/About option in the menu.
 

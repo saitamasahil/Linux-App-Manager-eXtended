@@ -38,7 +38,7 @@ highlighted_success() {
     echo -e "\033[1;30;102m$1\033[0m"
 }
 
-LAMX_VERSION="2.5"
+LAMX_VERSION="2.6"
 
 # Main Menu - Entry point for the app
 main_menu() {
@@ -214,14 +214,13 @@ check_internet() {
 
 show_help() {
     centered_heading "Help / About"
-    echo "Version: 2.5"
+    echo "Version: 2.6"
     echo "Author: saitamasahil"
     echo ""
     echo "Usage:"
     echo "- Start LAMX with ./lamx."
     echo "- Type the number of the menu option you want and press Enter."
     echo "- For installing, uninstalling, or updating LAMX itself, use the LAMX System Management option in the main menu."
-    echo "- You can only use the uninstall and update options after installing LAMX systemwide."
     echo "- After installing systemwide, you can simply type lamx in any terminal to start the app."
     echo ""
     echo "Main Menu Options Explained:"
