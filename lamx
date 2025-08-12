@@ -1921,7 +1921,7 @@ firmware_manager() {
             return 0
         else
             highlighted_warning "fwupdmgr is not installed."
-            read -rp "Do you want to install fwupdmgr? (Y/n): " install_choice
+            read -rp "Do you want to install fwupdmgr? (y/n): " install_choice
             case $install_choice in
             [yY]*)
                 install_fwupdmgr
