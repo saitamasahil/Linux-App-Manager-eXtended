@@ -1,5 +1,8 @@
-
 # Linux App Manager eXtended (LAMX)
+
+<div align="center">
+  <img src="screenshot.png" alt="LAMX Screenshot" />
+</div>
 
 LAMX is a powerful, interactive Bash script that helps you manage Linux applications and system tools from a single, unified menu. It supports all major package managers (APT, Pacman, DNF, DEB, RPM, Snap, Flatpak), firmware updates, NVIDIA drivers, and power profiles. LAMX is designed for users who want a central, easy-to-use app management experience on any Linux distribution.
 
