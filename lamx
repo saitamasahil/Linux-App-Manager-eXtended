@@ -387,9 +387,11 @@ show_help() {
     echo ""
     echo "Tips:"
     echo "- Type the number to select menu options."
+    echo "- You can hide or show main menu options using 'Manage Main Menu Options' in LAMX System Management."
+    echo "- Hidden options will not appear in the main menu until you make them visible again."
     echo "- For uninstall/cleanup, you'll see a preview and be asked to confirm."
     echo "- For help, rerun this menu."
-    echo "- Use the LAMX System Management option to install, uninstall, or update LAMX systemwide."
+    echo "- Use the LAMX System Management option to install, uninstall, update LAMX, or manage menu options."
     echo ""
     read -rp "Press Enter to return to main menu..."
     main_menu
