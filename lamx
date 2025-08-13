@@ -87,7 +87,7 @@ highlighted_success() {
     echo -e "\033[1;30;102m$1\033[0m"
 }
 
-LAMX_VERSION="2.7"
+LAMX_VERSION="2.8"
 
 # Main Menu - Entry point for the app
 main_menu() {
@@ -230,7 +230,7 @@ lamx_install_menu() {
             grep '^LAMX_VERSION=' "$tmpfile" | head -n1 >"$tmpver"
             remote_version=$(cut -d'=' -f2 "$tmpver" | tr -d '"')
             if [ "$LAMX_VERSION" = "$remote_version" ]; then
-                highlighted_success "You are already using the latest version ($LAMX_VERSION)."
+                highlighted_success "You are already using the latest version $LAMX_VERSION."
             else
                 if [ -s "$tmpfile" ]; then
                     sudo cp "$tmpfile" /usr/local/bin/lamx && sudo chmod +x /usr/local/bin/lamx
@@ -370,7 +370,7 @@ check_internet() {
 
 show_help() {
     centered_heading "Help / About"
-    echo "Version: 2.7"
+    echo "Version: 2.8"
     echo "Author: saitamasahil"
     echo ""
     echo "Usage:"
