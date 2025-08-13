@@ -180,7 +180,7 @@ lamx_install_menu() {
         centered_heading "LAMX System Installer"
         echo "Select Your Choice:"
         echo " 1. Install LAMX systemwide"
-        echo " 2. Uninstall LAMX from system"
+        echo " 2. Uninstall LAMX and Remove LAMX Configuration."
         echo " 3. Update LAMX (download latest from GitHub)"
         echo " 4. Manage Main Menu Options"
         echo " 5. Go Back To Main Menu"
@@ -199,8 +199,16 @@ lamx_install_menu() {
                 # Remove config folder where menu.conf is stored
                 if [ -d "$HOME/.config/lamx" ]; then
                     rm -rf "$HOME/.config/lamx"
+                    highlighted_success "LAMX configuration found and removed."
+                    echo ""
                 fi
             else
+                # Remove config folder where menu.conf is stored
+                if [ -d "$HOME/.config/lamx" ]; then
+                    rm -rf "$HOME/.config/lamx"
+                    highlighted_success "LAMX configuration found and removed."
+                    echo ""
+                fi
                 highlighted_warning "LAMX is not installed in /usr/local/bin."
             fi
             read -rp "Press Enter to continue..."
