@@ -196,6 +196,10 @@ lamx_install_menu() {
         2)
             if [ -f /usr/local/bin/lamx ]; then
                 sudo rm /usr/local/bin/lamx && highlighted_success "LAMX uninstalled from system."
+                # Remove config folder where menu.conf is stored
+                if [ -d "$HOME/.config/lamx" ]; then
+                    rm -rf "$HOME/.config/lamx"
+                fi
             else
                 highlighted_warning "LAMX is not installed in /usr/local/bin."
             fi
