@@ -4,6 +4,55 @@
 # A powerful, interactive Bash script for managing Linux applications and system tools across all major package managers (APT, Pacman, DNF, DEB, RPM, Snap, Flatpak, Firmware) and system utilities (NVIDIA drivers, Tuned power profiles) from a unified TUI menu.
 # Run with a single command: lamx. Perfect for users who want a central, easy-to-use app management experience on any Linux distro.
 
+# --- Menu Option Visibility Variables (0=show, 1=hide)
+# Persistent config file for menu visibility: ~/.config/lamx/menu.conf
+LAMX_MENU_CONF="$HOME/.config/lamx/menu.conf"
+HIDE_APT=0
+HIDE_PACMAN=0
+HIDE_DNF=0
+HIDE_DEB=0
+HIDE_RPM=0
+HIDE_SNAP=0
+HIDE_FLATPAK=0
+HIDE_FIRMWARE=0
+HIDE_NVIDIA=0
+HIDE_TUNED=0
+HIDE_UPDATE=0
+HIDE_SYSINFO=0
+HIDE_INTERNET=0
+HIDE_HELP=0
+
+# Load menu config if exists
+load_menu_config() {
+    [ -f "$LAMX_MENU_CONF" ] || return
+    while IFS='=' read -r key val; do
+        case $key in
+        HIDE_*) eval "$key=$val" ;;
+        esac
+    done <"$LAMX_MENU_CONF"
+}
+
+# Save menu config
+save_menu_config() {
+    mkdir -p "$(dirname "$LAMX_MENU_CONF")"
+    cat >"$LAMX_MENU_CONF" <<EOF
+HIDE_APT=$HIDE_APT
+HIDE_PACMAN=$HIDE_PACMAN
+HIDE_DNF=$HIDE_DNF
+HIDE_DEB=$HIDE_DEB
+HIDE_RPM=$HIDE_RPM
+HIDE_SNAP=$HIDE_SNAP
+HIDE_FLATPAK=$HIDE_FLATPAK
+HIDE_FIRMWARE=$HIDE_FIRMWARE
+HIDE_NVIDIA=$HIDE_NVIDIA
+HIDE_TUNED=$HIDE_TUNED
+HIDE_UPDATE=$HIDE_UPDATE
+HIDE_SYSINFO=$HIDE_SYSINFO
+HIDE_INTERNET=$HIDE_INTERNET
+HIDE_HELP=$HIDE_HELP
+EOF
+}
+
 # Function to clear the screen and print a centered heading with a border that fits the heading only
 centered_heading() {
     clear
@@ -42,59 +91,71 @@ LAMX_VERSION="2.6"
 
 # Main Menu - Entry point for the app
 main_menu() {
+    load_menu_config
     centered_heading "Linux App Manager eXtended"
     echo "Select Your Choice:"
     local menu_items=()
     local menu_funcs=()
-    if command -v apt &>/dev/null; then
+    if command -v apt &>/dev/null && [ "$HIDE_APT" = 0 ]; then
         menu_items+=("APT App Manager")
         menu_funcs+=("apt_manager")
     fi
-    if command -v pacman &>/dev/null; then
+    if command -v pacman &>/dev/null && [ "$HIDE_PACMAN" = 0 ]; then
         menu_items+=("Pacman App Manager")
         menu_funcs+=("pacman_manager")
     fi
-    if command -v dnf &>/dev/null; then
+    if command -v dnf &>/dev/null && [ "$HIDE_DNF" = 0 ]; then
         menu_items+=("DNF App Manager")
         menu_funcs+=("dnf_manager")
     fi
-    if command -v dpkg &>/dev/null || command -v apt &>/dev/null; then
+    if (command -v dpkg &>/dev/null || command -v apt &>/dev/null) && [ "$HIDE_DEB" = 0 ]; then
         menu_items+=("DEB App Manager")
         menu_funcs+=("deb_manager")
     fi
-    if command -v rpm &>/dev/null || command -v dnf &>/dev/null; then
+    if (command -v rpm &>/dev/null || command -v dnf &>/dev/null) && [ "$HIDE_RPM" = 0 ]; then
         menu_items+=("RPM App Manager")
         menu_funcs+=("rpm_manager")
     fi
-    # Snap and Flatpak always visible
-    menu_items+=("Snap App Manager")
-    menu_funcs+=("snap_manager")
-    menu_items+=("Flatpak App Manager")
-    menu_funcs+=("flatpak_manager")
-    # Firmware only if available
-    if command -v fwupdmgr &>/dev/null; then
+    if [ "$HIDE_SNAP" = 0 ]; then
+        menu_items+=("Snap App Manager")
+        menu_funcs+=("snap_manager")
+    fi
+    if [ "$HIDE_FLATPAK" = 0 ]; then
+        menu_items+=("Flatpak App Manager")
+        menu_funcs+=("flatpak_manager")
+    fi
+    if command -v fwupdmgr &>/dev/null && [ "$HIDE_FIRMWARE" = 0 ]; then
         menu_items+=("Firmware Manager")
         menu_funcs+=("firmware_manager")
     fi
-    # NVIDIA always visible
-    menu_items+=("NVIDIA Driver Manager")
-    menu_funcs+=("nvidia_manager")
-    # Tuned always visible
-    menu_items+=("Tuned Power Profile Manager")
-    menu_funcs+=("tuned_manager")
-    menu_items+=("Update All Packages In Your System")
-    menu_funcs+=("update_all_packages")
-    menu_items+=("Show System Info")
-    menu_funcs+=("show_system_info")
-    menu_items+=("Check for Internet Connection")
-    menu_funcs+=("check_internet")
-    menu_items+=("Help/About")
-    menu_funcs+=("show_help")
-    menu_items+=("LAMX System Management (Install/Uninstall/Update)")
+    if [ "$HIDE_NVIDIA" = 0 ]; then
+        menu_items+=("NVIDIA Driver Manager")
+        menu_funcs+=("nvidia_manager")
+    fi
+    if [ "$HIDE_TUNED" = 0 ]; then
+        menu_items+=("Tuned Power Profile Manager")
+        menu_funcs+=("tuned_manager")
+    fi
+    if [ "$HIDE_UPDATE" = 0 ]; then
+        menu_items+=("Update All Packages In Your System")
+        menu_funcs+=("update_all_packages")
+    fi
+    if [ "$HIDE_SYSINFO" = 0 ]; then
+        menu_items+=("Show System Info")
+        menu_funcs+=("show_system_info")
+    fi
+    if [ "$HIDE_INTERNET" = 0 ]; then
+        menu_items+=("Check for Internet Connection")
+        menu_funcs+=("check_internet")
+    fi
+    if [ "$HIDE_HELP" = 0 ]; then
+        menu_items+=("Help/About")
+        menu_funcs+=("show_help")
+    fi
+    menu_items+=("LAMX System Management")
     menu_funcs+=("lamx_install_menu")
     menu_items+=("Exit Program")
     menu_funcs+=("exit 0")
-
     for i in "${!menu_items[@]}"; do
         printf " %2d. %s\n" $((i + 1)) "${menu_items[$i]}"
     done
@@ -121,7 +182,8 @@ lamx_install_menu() {
         echo " 1. Install LAMX systemwide"
         echo " 2. Uninstall LAMX from system"
         echo " 3. Update LAMX (download latest from GitHub)"
-        echo " 4. Go Back To Main Menu"
+        echo " 4. Manage Main Menu Options"
+        echo " 5. Go Back To Main Menu"
         echo ""
         read -p "Enter your choice: " choice
         case $choice in
@@ -169,6 +231,12 @@ lamx_install_menu() {
             read -rp "Press Enter to continue..."
             ;;
         4)
+            manage_main_menu_options
+            # After toggling, reload main menu to reflect changes
+            main_menu
+            return
+            ;;
+        5)
             main_menu
             return
             ;;
@@ -177,6 +245,82 @@ lamx_install_menu() {
             sleep 1
             ;;
         esac
+    done
+}
+
+# --- Manage Main Menu Options (in-memory, session only) ---
+manage_main_menu_options() {
+    # Only show/toggle options that are available on this system
+    local opts=()
+    local vars=()
+    if command -v apt &>/dev/null; then
+        opts+=("APT App Manager")
+        vars+=(HIDE_APT)
+    fi
+    if command -v pacman &>/dev/null; then
+        opts+=("Pacman App Manager")
+        vars+=(HIDE_PACMAN)
+    fi
+    if command -v dnf &>/dev/null; then
+        opts+=("DNF App Manager")
+        vars+=(HIDE_DNF)
+    fi
+    if command -v dpkg &>/dev/null || command -v apt &>/dev/null; then
+        opts+=("DEB App Manager")
+        vars+=(HIDE_DEB)
+    fi
+    if command -v rpm &>/dev/null || command -v dnf &>/dev/null; then
+        opts+=("RPM App Manager")
+        vars+=(HIDE_RPM)
+    fi
+    opts+=("Snap App Manager")
+    vars+=(HIDE_SNAP)
+    opts+=("Flatpak App Manager")
+    vars+=(HIDE_FLATPAK)
+    if command -v fwupdmgr &>/dev/null; then
+        opts+=("Firmware Manager")
+        vars+=(HIDE_FIRMWARE)
+    fi
+    opts+=("NVIDIA Driver Manager")
+    vars+=(HIDE_NVIDIA) # Always persistent
+    opts+=("Tuned Power Profile Manager")
+    vars+=(HIDE_TUNED) # Always persistent
+    opts+=("Update All Packages In Your System")
+    vars+=(HIDE_UPDATE)
+    opts+=("Show System Info")
+    vars+=(HIDE_SYSINFO)
+    opts+=("Check for Internet Connection")
+    vars+=(HIDE_INTERNET)
+    opts+=("Help/About")
+    vars+=(HIDE_HELP)
+    while true; do
+        centered_heading "Manage Main Menu Options"
+        echo -e "Toggle menu visibility. Hidden = \033[1;41mRED\033[0m, Visible = \033[1;30;102mGREEN\033[0m."
+        for idx in "${!opts[@]}"; do
+            local var=${vars[$idx]}
+            local val=${!var}
+            if [ "$val" = "1" ]; then
+                color="\033[1;41m"
+                status="Hidden"
+            else
+                color="\033[1;30;102m"
+                status="Visible"
+            fi
+            printf " %2d. %b%s%b [%s]\033[0m\n" $((idx + 1)) "$color" "${opts[$idx]}" "\033[0m" "$status"
+        done
+        echo ""
+        echo " 0. Go Back To Main Menu"
+        read -p "Enter number to toggle, or 0 to go back: " choice
+        if [[ "$choice" =~ ^[0-9]+$ ]] && [ "$choice" -ge 1 ] && [ "$choice" -le ${#opts[@]} ]; then
+            local var=${vars[$((choice - 1))]}
+            if [ "${!var}" = "1" ]; then eval "$var=0"; else eval "$var=1"; fi
+            save_menu_config
+        elif [ "$choice" = "0" ]; then
+            return
+        else
+            highlighted_warning "Invalid choice."
+            sleep 1
+        fi
     done
 }
 
