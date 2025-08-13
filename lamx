@@ -199,6 +199,7 @@ lamx_install_menu() {
                 # Remove config folder where menu.conf is stored
                 if [ -d "$HOME/.config/lamx" ]; then
                     rm -rf "$HOME/.config/lamx"
+                    echo ""
                     highlighted_success "LAMX configuration found and removed."
                     echo ""
                 fi
