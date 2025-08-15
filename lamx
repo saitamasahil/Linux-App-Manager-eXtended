@@ -10,6 +10,7 @@ LAMX_MENU_CONF="$HOME/.config/lamx/menu.conf"
 HIDE_APT=0
 HIDE_PACMAN=0
 HIDE_DNF=0
+HIDE_ZYPPER=0
 HIDE_DEB=0
 HIDE_RPM=0
 HIDE_SNAP=0
@@ -39,6 +40,7 @@ save_menu_config() {
 HIDE_APT=$HIDE_APT
 HIDE_PACMAN=$HIDE_PACMAN
 HIDE_DNF=$HIDE_DNF
+HIDE_ZYPPER=$HIDE_ZYPPER
 HIDE_DEB=$HIDE_DEB
 HIDE_RPM=$HIDE_RPM
 HIDE_SNAP=$HIDE_SNAP
@@ -107,6 +109,10 @@ main_menu() {
     if command -v dnf &>/dev/null && [ "$HIDE_DNF" = 0 ]; then
         menu_items+=("DNF App Manager")
         menu_funcs+=("dnf_manager")
+    fi
+    if command -v zypper &>/dev/null && [ "$HIDE_ZYPPER" = 0 ]; then
+        menu_items+=("Zypper App Manager")
+        menu_funcs+=("zypper_manager")
     fi
     if (command -v dpkg &>/dev/null || command -v apt &>/dev/null) && [ "$HIDE_DEB" = 0 ]; then
         menu_items+=("DEB App Manager")
@@ -278,6 +284,10 @@ manage_main_menu_options() {
         opts+=("DNF App Manager")
         vars+=(HIDE_DNF)
     fi
+    if command -v zypper &>/dev/null; then
+        opts+=("Zypper App Manager")
+        vars+=(HIDE_ZYPPER)
+    fi
     if command -v dpkg &>/dev/null || command -v apt &>/dev/null; then
         opts+=("DEB App Manager")
         vars+=(HIDE_DEB)
@@ -388,7 +398,7 @@ show_help() {
     echo ""
     echo "Features:"
     echo "- Dynamic menu: only shows options for package managers and system tools detected on your system."
-    echo "- Manage apps using APT, Pacman, DNF, DEB, RPM, Snap, and Flatpak."
+    echo "- Manage apps using APT, Pacman, DNF, Zypper, DEB, RPM, Snap, and Flatpak."
     echo "- Update all packages across supported managers with one command."
     echo "- Manage firmware updates and NVIDIA drivers."
     echo "- Configure power profiles with Tuned."
@@ -1502,6 +1512,111 @@ edit_dnf_repo_manager() {
             sleep 1
             ;;
         5)
+            return
+            ;;
+        *)
+            highlighted_warning "Invalid choice. Please try again."
+            sleep 1
+            ;;
+        esac
+    done
+}
+
+# Zypper App Manager
+zypper_manager() {
+    while true; do
+        centered_heading "Zypper App Manager"
+        echo "Select Your Choice:"
+        echo " 1. List All Installed Packages"
+        echo " 2. Search for a Package"
+        echo " 3. Install a Package"
+        echo " 4. Remove a Package"
+        echo " 5. Update All Packages"
+        echo " 6. Clean Cache"
+        echo " 7. List Repositories"
+        echo " 8. Add a Repository"
+        echo " 9. Remove a Repository"
+        echo "10. Edit zypper.conf"
+        echo "11. Go Back To Main Menu"
+        echo ""
+        read -p "Enter your choice: " choice
+        case $choice in
+        1)
+            echo "Listing all installed packages:"
+            zypper se --installed-only
+            read -rp "Press Enter to continue..."
+            ;;
+        2)
+            read -rp "Enter the package name to search: " pkg
+            zypper se -d "$pkg"
+            read -rp "Press Enter to continue..."
+            ;;
+        3)
+            read -rp "Enter the package name to install: " pkg
+            sudo zypper install "$pkg"
+            read -rp "Press Enter to continue..."
+            ;;
+        4)
+            read -rp "Enter the package name to remove: " pkg
+            sudo zypper remove "$pkg"
+            read -rp "Press Enter to continue..."
+            ;;
+        5)
+            echo "Updating all packages..."
+            sudo zypper refresh
+            sudo zypper update -y
+            read -rp "Press Enter to continue..."
+            ;;
+        6)
+            echo "Cleaning cache..."
+            sudo zypper clean --all
+            read -rp "Press Enter to continue..."
+            ;;
+        7)
+            echo "Listing repositories:"
+            zypper repos
+            read -rp "Press Enter to continue..."
+            ;;
+        8)
+            read -rp "Enter the repository URL: " repo_url
+            read -rp "Enter a name for the repository: " repo_name
+            sudo zypper addrepo --refresh "$repo_url" "$repo_name"
+            read -rp "Press Enter to continue..."
+            ;;
+        9)
+            zypper repos
+            read -rp "Enter the repository alias or number to remove: " repo_input
+            # Map number to alias if a number is given
+            if [[ "$repo_input" =~ ^[0-9]+$ ]]; then
+                repo_alias=$(zypper repos | awk -v n="$repo_input" 'NR>2 && $1==n {print $3}')
+                if [ -z "$repo_alias" ]; then
+                    highlighted_warning "No repository found for number $repo_input."
+                    read -rp "Press Enter to continue..."
+                    continue
+                fi
+            else
+                repo_alias="$repo_input"
+            fi
+            sudo zypper removerepo "$repo_alias"
+            read -rp "Press Enter to continue..."
+            ;;
+        10)
+            local conf_file="/etc/zypp/zypp.conf"
+            if [ ! -f "$conf_file" ]; then
+                highlighted_warning "zypp.conf not found at $conf_file."
+                read -rp "Do you want to create a new zypp.conf file? (y/n): " create_choice
+                if [[ "$create_choice" =~ ^[Yy]$ ]]; then
+                    echo -e "## Main Zypper configuration file\n" | sudo tee "$conf_file" >/dev/null
+                    highlighted_success "Created new zypp.conf at $conf_file."
+                else
+                    read -rp "Press Enter to continue..."
+                    continue
+                fi
+            fi
+            sudo nano "$conf_file"
+            ;;
+        11)
+            main_menu
             return
             ;;
         *)

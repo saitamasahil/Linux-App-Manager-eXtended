@@ -4,7 +4,7 @@
   <img src="screenshot.png" alt="LAMX Screenshot" />
 </div>
 
-LAMX is a powerful, interactive Bash script that helps you manage Linux applications and system tools from a single, unified menu. It supports all major package managers (APT, Pacman, DNF, DEB, RPM, Snap, Flatpak), firmware updates, NVIDIA drivers, and power profiles. LAMX is designed for users who want a central, easy-to-use app management experience on any Linux distribution.
+LAMX is a powerful, interactive Bash script that helps you manage Linux applications and system tools from a single, unified menu. It supports all major package managers (APT, Pacman, DNF, Zypper, DEB, RPM, Snap, Flatpak), firmware updates, NVIDIA drivers, and power profiles. LAMX is designed for users who want a central, easy-to-use app management experience on any Linux distribution.
 
 ## Getting Started
 
@@ -28,7 +28,7 @@ LAMX is a powerful, interactive Bash script that helps you manage Linux applicat
    - After installing systemwide, you can simply type `lamx` in any terminal to start the app.
 
 ## Main Features
-- Manage apps using APT, Pacman, DNF, DEB, RPM, Snap, and Flatpak.
+- Manage apps using APT, Pacman, DNF, Zypper, DEB, RPM, Snap, and Flatpak.
 - Update all packages across supported managers with one command.
 - Manage firmware updates and NVIDIA drivers.
 - Configure power profiles with Tuned.
@@ -58,6 +58,7 @@ LAMX is a powerful, interactive Bash script that helps you manage Linux applicat
   - APT App Manager
   - Pacman App Manager
   - DNF App Manager
+  - Zypper App Manager
   - DEB App Manager
   - RPM App Manager
   - Firmware Manager
