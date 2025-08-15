@@ -2172,10 +2172,19 @@ nvidia_manager() {
         echo "Installing NVIDIA drivers on SUSE-based system..."
         sudo zypper refresh
         sudo zypper install -y dkms kernel-default-devel gcc
-        releasever=$(lsb_release -rs 2>/dev/null || echo "15.4")
-        sudo zypper addrepo --refresh https://download.nvidia.com/opensuse/leap/"$releasever" NVIDIA
-        sudo zypper install -y x11-video-nvidiaG05
-        echo "NVIDIA drivers installed on SUSE-based system."
+        # Detect Leap vs Tumbleweed
+        if grep -qi 'tumbleweed' /etc/os-release; then
+            # Tumbleweed
+            sudo zypper addrepo --refresh https://download.nvidia.com/opensuse/tumbleweed NVIDIA
+            sudo zypper install -y x11-video-nvidiaG06
+            echo "NVIDIA drivers installed from Tumbleweed repo."
+        else
+            # Assume Leap
+            releasever=$(lsb_release -rs 2>/dev/null || grep VERSION_ID /etc/os-release | cut -d'"' -f2)
+            sudo zypper addrepo --refresh https://download.nvidia.com/opensuse/leap/"$releasever" NVIDIA
+            sudo zypper install -y x11-video-nvidiaG06
+            echo "NVIDIA drivers installed from Leap repo."
+        fi
         highlighted_success "NVIDIA drivers installation complete."
         read -rp "Press Enter to continue..."
     }
